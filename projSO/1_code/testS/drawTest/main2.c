@@ -29,6 +29,8 @@ void moveProcess(int* pipe_fd);
 void tronco(int* pipe_fd, int y,int id);
 void printFrog(int x,int y);
 void disegnaTronco(int row, int col);
+void stampaTroncoInMatrice(int row, int col, char (*screenMatrix)[WIDTH]);
+void pulisciTroncoInMatrice(int row, int col, char (*screenMatrix)[WIDTH]);
 /*-----------------------------------------------------------------------------------------------------------------------------------------------*/
 // #1TODO# invece che stampare la X stampare la rana:
 //         (correggere lo scrittore in modo che la rana non esca dai bordi)
@@ -108,8 +110,6 @@ int main() {
 		
 		initscr(); // Inizializza ncurses
     curs_set(FALSE); // Nasconde il cursore
-    
-    
 
 		// Abilita l'input non bloccante
     nodelay(stdscr, TRUE);
@@ -131,7 +131,7 @@ int main() {
         return 1;
     } else if (draw_pid == 0) {
         // Processo "disegna"
-        //close(pipe_fd[1]); // Chiudi l'estremità di scrittura della pipe
+        close(pipe_fd[1]); // Chiudi l'estremità di scrittura della pipe
         drawProcess(pipe_fd);
         exit(0);
     }
@@ -149,6 +149,7 @@ int main() {
     }
     
     
+    
     // Crea il processo per il tronco 1
     pid_t tronco_pid = fork();
     if (tronco_pid < 0) {
@@ -156,22 +157,25 @@ int main() {
         return 1;
     } else if (tronco_pid == 0) {
         // Processo tronco 1
-        //close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
         tronco(pipe_fd,7,0);
         exit(0);
     }
     
+    
+    /*
     // Crea il processo per il tronco 2
     pid_t tronco_pid2 = fork();
     if (tronco_pid2 < 0) {
         perror("Fork failed");
         return 1;
     } else if (tronco_pid2 == 0) {
-        // Processo tronco 1
-        //close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        // Processo tronco 2
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
         tronco(pipe_fd,10,1);
         exit(0);
     }
+    
     
     // Crea il processo per il tronco 3
     pid_t tronco_pid3 = fork();
@@ -179,25 +183,23 @@ int main() {
         perror("Fork failed");
         return 1;
     } else if (tronco_pid3 == 0) {
-        // Processo tronco 1
-        //close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
-        tronco(pipe_fd,4,2);
+        // Processo tronco 3
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        tronco(pipe_fd,13,2);
         exit(0);
     }
-    /**/
-    // Chiudi le estremità della pipe nel processo padre
+    */
     
+    
+
+    // Chiudi le estremità della pipe nel processo padre
     close(pipe_fd[0]);
     close(pipe_fd[1]);
-		/**/
+
     // Aspetta che i processi figlio terminino
     wait(NULL);
     wait(NULL);
-		wait(NULL);
-		wait(NULL);
-		//wait(NULL);
-		
-		
+
     return 0;
 }
 
@@ -208,12 +210,11 @@ void moveProcess(int* pipe_fd) {
 		pipeData.x=6;
 		pipeData.y=6;
 		pipeData.type='X';
-		pipeData.id=0;
 		
     while (1) {
         // Leggi il carattere dall'input
         int ch = getch();
-        if (ch != ERR && ch != 'q') {
+        if (ch != ERR) {
             
             // Muovi il personaggio in base all'input dell'utente
             switch (ch) {
@@ -233,13 +234,12 @@ void moveProcess(int* pipe_fd) {
 
             // Invia le coordinate attraverso la pipe
             write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
-        }else{break;} // se ch non valido esce dal ciclo
+        }
 
         // Aspetta un po' prima di generare nuove coordinate forse andrebbe diminuito
-        usleep(100000); // andrebbe tolto nel processo che prende input
-    }//end while
-    exit(0);
-}//end moveProcess()
+        usleep(100000);
+    }
+}
 
 
 void drawProcess(int* pipe_fd) {
@@ -257,7 +257,6 @@ void drawProcess(int* pipe_fd) {
     pipeData_old.x=-1;
     pipeData_old.y=-1;
     pipeData_old.type=' ';
-    pipeData_old.id=0;
     
     // struttura ausiliaria per le coordinate al passo precedente del tronco1
     struct PipeData troncoData_old;
@@ -267,7 +266,6 @@ void drawProcess(int* pipe_fd) {
     troncoData_old.type=' ';
     troncoData_old.id=0;
     
-    
     // struttura ausiliaria per le coordinate al passo precedente del tronco1
     struct PipeData troncoData_old2;
     // inizializzata a valori inverosimili
@@ -276,7 +274,6 @@ void drawProcess(int* pipe_fd) {
     troncoData_old2.type=' ';
     troncoData_old2.id=1;
     
-    
     // struttura ausiliaria per le coordinate al passo precedente del tronco1
     struct PipeData troncoData_old3;
     // inizializzata a valori inverosimili
@@ -284,9 +281,6 @@ void drawProcess(int* pipe_fd) {
     troncoData_old3.y=-1;
     troncoData_old3.type=' ';
     troncoData_old3.id=2;
-    
-    /**/
-    
     
     // inizializzazione matrice che rappresenta lo schermo
 		char screenMatrix[HEIGHT][WIDTH];
@@ -298,9 +292,8 @@ void drawProcess(int* pipe_fd) {
 		}
 
     while (1) {
-    		
         // Leggi le coordinate inviate dalla pipe
-        close(pipe_fd[1]); // Chiudi l'estremità di scrittura della pipe
+        
         read(pipe_fd[0], &pipeData, sizeof(struct PipeData));
         
         mvprintw(30,5,"problema se non visualizzi questo");
@@ -316,7 +309,9 @@ void drawProcess(int* pipe_fd) {
         	
         		// scrivo posizione nuova
         		screenMatrix[pipeData.y][pipeData.x]=pipeData.type;
-        		        	
+        		
+        		
+        	
         		// aggiorno coords_old
         		pipeData_old.x=pipeData.x;
         		pipeData_old.y=pipeData.y;
@@ -331,96 +326,79 @@ void drawProcess(int* pipe_fd) {
         			// se pipedata è diverso da troncodata_old allora le coordinate sono cambiate 
         			// devo cancellare la T nella posizione vecchia e scriverla nella posizione nuova all'interno della matrice
         			if(pipeData.x!=troncoData_old.x || pipeData.y!=troncoData_old.y){
+        				
+        				pulisciTroncoInMatrice(troncoData_old.y,troncoData_old.x,screenMatrix);
+        				/*
+        				// sovrascrivo posizione vecchia
+        				for(int i=troncoData_old.y;i<troncoData_old.y+2;i++){
+        					for(int j=troncoData_old.x;j<troncoData_old.x+9;j++){
+        						screenMatrix[i][j]=' ';
+        					}
+        				}
+        				*/
+        		
+        				stampaTroncoInMatrice(pipeData.y,pipeData.x,screenMatrix);
         	
-		      			// sovrascrivo posizione vecchia
-		      			for(int i=troncoData_old.y;i<troncoData_old.y+2;i++){
-		      				for(int j=troncoData_old.x;j<troncoData_old.x+9;j++){
-		      					screenMatrix[i][j]=' ';
-		      				}
-		      			}
-		      		
-		      	
-		      			// scrivo posizione nuova
-		      			//screenMatrix[pipeData.y][pipeData.x]=pipeData.type;
-		      			for(int i=pipeData.y;i<pipeData.y+2;i++){
-		      				for(int j=pipeData.x;j<pipeData.x+9;j++){
-		      					screenMatrix[i][j]='T';
-		      				}
-		      			}
-		      		
-		      			//disegnaTronco(pipeData.y,pipeData.x);
-		      	
-		      			// aggiorno coords_old
-		      			troncoData_old.x=pipeData.x;
-		      			troncoData_old.y=pipeData.y;
-        			}// end if case0
+        				// aggiorno coords_old
+        				troncoData_old.x=pipeData.x;
+        				troncoData_old.y=pipeData.y;
+        			}
         			break;
-      			
         		case 1:
         			// se pipedata è diverso da troncodata_old allora le coordinate sono cambiate 
         			// devo cancellare la T nella posizione vecchia e scriverla nella posizione nuova all'interno della matrice
         			if(pipeData.x!=troncoData_old2.x || pipeData.y!=troncoData_old2.y){
-        	
+        				
+        				pulisciTroncoInMatrice(troncoData_old2.y,troncoData_old2.x,screenMatrix);
+        				/*
         				// sovrascrivo posizione vecchia
         				for(int i=troncoData_old2.y;i<troncoData_old2.y+2;i++){
-        					for(int j=troncoData_old2.x;j<troncoData_old2.x+8;j++){
+        					for(int j=troncoData_old2.x;j<troncoData_old2.x+9;j++){
         						screenMatrix[i][j]=' ';
         					}
         				}
+        				*/
         		
-        	
-        				// scrivo posizione nuova
-        				//screenMatrix[pipeData.y][pipeData.x]=pipeData.type;
-        				for(int i=pipeData.y;i<pipeData.y+2;i++){
-        					for(int j=pipeData.x;j<pipeData.x+8;j++){
-        						screenMatrix[i][j]='T';
-        					}
-        				}
-        		
-        				//disegnaTronco(pipeData.y,pipeData.x);
+        				stampaTroncoInMatrice(pipeData.y,pipeData.x,screenMatrix);
         	
         				// aggiorno coords_old
         				troncoData_old2.x=pipeData.x;
         				troncoData_old2.y=pipeData.y;
-        			}	//end if case1
+        			}
         			break;
-        			
-        			
         		case 2:
+        			/*
         			// se pipedata è diverso da troncodata_old allora le coordinate sono cambiate 
         			// devo cancellare la T nella posizione vecchia e scriverla nella posizione nuova all'interno della matrice
         			if(pipeData.x!=troncoData_old3.x || pipeData.y!=troncoData_old3.y){
         	
 		      			// sovrascrivo posizione vecchia
 		      			for(int i=troncoData_old3.y;i<troncoData_old3.y+2;i++){
-		      				for(int j=troncoData_old3.x;j<troncoData_old3.x+8;j++){
+		      				for(int j=troncoData_old3.x;j<troncoData_old3.x+9;j++){
 		      					screenMatrix[i][j]=' ';
 		      				}
 		      			}
 		      		
-		      	
-		      			// scrivo posizione nuova
-		      			//screenMatrix[pipeData.y][pipeData.x]=pipeData.type;
-		      			for(int i=pipeData.y;i<pipeData.y+2;i++){
-		      				for(int j=pipeData.x;j<pipeData.x+8;j++){
-		      					screenMatrix[i][j]='T';
-		      				}
-		      			}
-		      		
-		      			//disegnaTronco(pipeData.y,pipeData.x);
+		      			stampaTroncoInMatrice(pipeData.y,pipeData.x,screenMatrix);
 		      	
 		      			// aggiorno coords_old
 		      			troncoData_old3.x=pipeData.x;
 		      			troncoData_old3.y=pipeData.y;
-        			}	//end if case2
+        			}
+        			*/
         			break;
         		default:
         			break;
-        		/**/
-      		}// chiusura switch
         	
-        }// chiusura if type==T
- 
+        		}// chiusura switch
+        	
+        	}// chiusura if type==T
+        
+        
+        
+        
+        
+
         // Pulisci la finestra
         clear();
         
@@ -430,13 +408,15 @@ void drawProcess(int* pipe_fd) {
 						mvaddch(i, j, screenMatrix[i][j]);
 					}
 				}
+
         // Aggiorna la finestra
-        box(stdscr,ACS_VLINE, ACS_HLINE);
         refresh();
-    } // chiusura while
+        
+        } // chiusura while
     
-		endwin(); // Termina ncurses
-}	// end drawProcess()
+
+    		endwin(); // Termina ncurses
+}
 
 // ok
 void printFrog(int x,int y){
@@ -511,7 +491,7 @@ void tronco(int* pipe_fd, int y,int id) {
     		}
     	}
     	
-      close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+      
 
       // Invia le coordinate attraverso la pipe
       write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
@@ -521,5 +501,29 @@ void tronco(int* pipe_fd, int y,int id) {
     }
 }
 
+// stampa un tronco nella matrice che rappresenta lo schermo
+void stampaTroncoInMatrice(int row,int col, char (*screenMatrix)[WIDTH]){
+	int max_row=2;
+	int max_col=9;
+        				
+  for(int i=row;i<row+max_row;i++){
+  	for(int j=col;j<col+max_col;j++){
+    	screenMatrix[i][j]='T';
+    }
+  }
+  return;
+}
 
-
+void pulisciTroncoInMatrice(int row, int col, char (*screenMatrix)[WIDTH]){
+	int max_row=2;
+	int max_col=9;
+  if(row!=-1){
+  	for(int i=row;i<row+max_row;i++){
+  	for(int j=col;j<col+max_col;j++){
+    	screenMatrix[i][j]=' ';
+    }
+  }
+  }      				
+  
+  return;
+}
