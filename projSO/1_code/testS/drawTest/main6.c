@@ -1,0 +1,475 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <ncurses.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define WIDTH 104
+#define HEIGHT 37
+
+#define RANA 1
+#define TRONCHI 2
+#define SFONDO 3
+#define FIUME 4
+#define TANE 5
+#define PRATO 6
+#define STRADA 7
+#define STRISCIA 8
+#define MARCIAPIEDE 9
+
+// Definizione della struttura dati per le coordinate (x, y) e per il tipo
+struct PipeData {
+    int x;
+    int y;
+    char type;
+    int id;
+};
+
+typedef struct {
+    char sprite[2][9]; // 2 righe - 8 char + terminatore di stringa 
+} SpriteTronco;
+
+struct ScreenCell{
+	char ch;
+	int color;
+};
+
+void drawProcess(int* pipe_fd);
+void moveProcess(int* pipe_fd);
+void tronco(int* pipe_fd, int y,int id);
+void printFrog(int x,int y);
+void disegnaTronco(int row, int col);
+void stampaTroncoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH]);
+void pulisciTroncoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH],struct ScreenCell (*staticScreenMatrix)[WIDTH]);
+void stampaMatrice(struct ScreenCell (*screenMatrix)[WIDTH]);
+void aggiornaPosizioneOggetto(struct PipeData *pipeData,
+															struct PipeData *old_pos,
+															struct ScreenCell (*screenMatrix)[WIDTH], 
+															struct ScreenCell (*staticScreenMatrix)[WIDTH]);
+void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]);
+
+int main() {
+		
+		initscr(); // Inizializza ncurses
+    curs_set(FALSE); // Nasconde il cursore
+    nodelay(stdscr, TRUE); // Abilita l'input non bloccante
+    keypad(stdscr, TRUE); // Abilita il keypad mode
+		
+    // Crea la pipe
+    int pipe_fd[2]; // Pipe file descriptors
+    if (pipe(pipe_fd) == -1) {
+        perror("Pipe creation failed");
+        return 1;
+    }
+
+    // Crea il processo per il disegno
+    pid_t draw_pid = fork();
+    if (draw_pid < 0) {
+        perror("Fork failed");
+        return 1;
+    } else if (draw_pid == 0) {
+        // Processo "disegna"
+        close(pipe_fd[1]); // Chiudi l'estremità di scrittura della pipe
+        drawProcess(pipe_fd);
+        exit(0);
+    }
+
+    // Crea il processo per il movimento
+    pid_t move_pid = fork();
+    if (move_pid < 0) {
+        perror("Fork failed");
+        return 1;
+    } else if (move_pid == 0) {
+        // Processo "muovi"
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        moveProcess(pipe_fd);
+        exit(0);
+    }
+    
+    // Crea il processo per il tronco 1
+    pid_t tronco_pid = fork();
+    if (tronco_pid < 0) {
+        perror("Fork failed");
+        return 1;
+    } else if (tronco_pid == 0) {
+        // Processo tronco 1
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        tronco(pipe_fd,10,1);
+        exit(0);
+    }
+    
+    // Crea il processo per il tronco 2
+    pid_t tronco_pid2 = fork();
+    if (tronco_pid2 < 0) {
+        perror("Fork failed");
+        return 1;
+    } else if (tronco_pid2 == 0) {
+        // Processo tronco 2
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        tronco(pipe_fd,13,2);
+        exit(0);
+    }
+    
+    // Crea il processo per il tronco 3
+    pid_t tronco_pid3 = fork();
+    if (tronco_pid3 < 0) {
+        perror("Fork failed");
+        return 1;
+    } else if (tronco_pid3 == 0) {
+        // Processo tronco 3
+        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+        tronco(pipe_fd,16,3);
+        exit(0);
+    }
+    
+    // Chiudi le estremità della pipe nel processo padre
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+
+    // Aspetta che i processi figlio terminino
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+    return 0;
+}
+
+void moveProcess(int* pipe_fd) {
+		struct PipeData pipeData;
+		pipeData.x=6;
+		pipeData.y=6;
+		pipeData.type='X';
+		
+    while (1) {
+        // Leggi il carattere dall'input
+        int ch = getch();
+        if (ch != ERR) {
+            
+            // Muovi il personaggio in base all'input dell'utente
+            switch (ch) {
+                case KEY_UP:
+                	if(pipeData.y>0){pipeData.y--;}
+                  break;
+                case KEY_DOWN:
+                	if(pipeData.y<HEIGHT-6){pipeData.y++;}
+                  break;
+                case KEY_LEFT:
+                	if(pipeData.x>0){pipeData.x--;}  
+                  break;
+                case KEY_RIGHT:
+                	if(pipeData.x<WIDTH-3){pipeData.x++;}
+                  break;
+            }
+
+            // Invia le coordinate attraverso la pipe
+            write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
+        }
+
+        // Aspetta un po' prima di generare nuove coordinate forse andrebbe diminuito
+        usleep(100000);
+    }
+    return;
+}
+
+void drawProcess(int* pipe_fd) {
+		start_color();
+    init_pair(RANA, COLOR_GREEN, COLOR_BLACK); // Crea una combinazione di colori (colore verde su sfondo nero)
+    init_pair(TRONCHI,COLOR_YELLOW,COLOR_RED); // per la colorazione dei tronchi
+    init_pair(SFONDO,COLOR_WHITE,COLOR_BLACK); // colore sfondo
+    init_pair(FIUME,COLOR_WHITE,COLOR_BLUE); // colore fiume 
+    init_pair(TANE,COLOR_WHITE,COLOR_YELLOW); // colore tane
+    init_pair(PRATO,COLOR_WHITE,COLOR_GREEN); // colore prato
+    init_pair(STRADA,COLOR_WHITE,COLOR_BLACK); // colore strada
+    init_pair(STRISCIA,COLOR_WHITE,COLOR_WHITE); // colore striscia 
+    init_pair(MARCIAPIEDE,COLOR_WHITE,COLOR_WHITE); // colore marciapiede
+		
+		// struttura per leggere la pipe
+    struct PipeData pipeData;
+    
+    // array di strutture che contiene dati oggetti al passo precedente
+    struct PipeData old_pos [4];
+    // rana
+    old_pos[0].x=-1;
+    old_pos[0].y=-1;
+    old_pos[0].type=' ';
+    old_pos[0].id=0;
+    
+    // tronco 1
+    old_pos[1].x=-1;
+    old_pos[1].y=-1;
+    old_pos[1].type=' ';
+    old_pos[1].id=1;
+    
+    // tronco 2
+    old_pos[2].x=-1;
+    old_pos[2].y=-1;
+    old_pos[2].type=' ';
+    old_pos[2].id=2;
+    
+    // tronco 3
+    old_pos[3].x=-1;
+    old_pos[3].y=-1;
+    old_pos[3].type=' ';
+    old_pos[3].id=3;
+    
+    // inizializzazione matrice che rappresenta lo schermo
+		struct ScreenCell screenMatrix[HEIGHT][WIDTH];
+		inizializzaMatriceSchermo(screenMatrix);
+		
+		// inizializzazione matrice degli elementi statici che rappresenta lo schermo
+		struct ScreenCell staticScreenMatrix[HEIGHT][WIDTH];
+		inizializzaMatriceSchermo(staticScreenMatrix);
+
+    while (1) {
+        // Leggi le coordinate inviate dalla pipe
+        read(pipe_fd[0], &pipeData, sizeof(struct PipeData));
+        
+        // se pipeData.type=='X' ovvero sono coordinate della rana
+        if(pipeData.type=='X'){
+        	// se pipedata è diverso da pipedata_old allora le coordinate sono cambiate pulisco la matrice e la riscrivo
+        	if(pipeData.x!=old_pos[0].x || pipeData.y!=old_pos[0].y){
+        	
+        		// sovrascrivo posizione vecchia
+        		screenMatrix[old_pos[0].y][old_pos[0].x].ch=' ';
+        	
+        		// scrivo posizione nuova
+        		screenMatrix[pipeData.y][pipeData.x].ch=pipeData.type;
+        		
+        		// aggiorno coords_old
+        		old_pos[0].x=pipeData.x;
+        		old_pos[0].y=pipeData.y;
+        	}
+        }
+        
+        // se pipeData.type=='T' ovvero sono coordinate del tronco
+        if(pipeData.type=='T'){
+        	switch(pipeData.id){
+        		case 1:
+        			aggiornaPosizioneOggetto(&pipeData, &old_pos[1], screenMatrix,staticScreenMatrix); // aggiorna pozione oggetto in matrice schermo
+        			break;
+        		case 2:
+        			aggiornaPosizioneOggetto(&pipeData, &old_pos[2], screenMatrix,staticScreenMatrix); // aggiorna pozione oggetto in matrice schermo
+        			break;
+        		case 3:
+        			aggiornaPosizioneOggetto(&pipeData, &old_pos[3], screenMatrix,staticScreenMatrix); // aggiorna pozione oggetto in matrice schermo
+        			break;
+        		default:
+        			break;
+        	
+        		}// chiusura switch
+        	}// chiusura if type==T
+        
+        	clear(); // Pulisci la finestra di gioco 
+					stampaMatrice(screenMatrix); // stampa a video l'intera matrice
+        	refresh(); // Aggiorna la finestra
+        }
+    
+    		endwin(); // Termina ncurses
+}
+
+// ok
+void printFrog(int x,int y){
+	// lo script della rana
+	char script[2][3]={{'/','.','\\'},{'\\','-','/'}};
+	
+	// ciclo che disegna la rana
+	for(int i=0;i<2;i++){
+		for(int j=0;j<3;j++){
+    	attron(A_BOLD | COLOR_PAIR(RANA));
+    	mvaddch(i,j,script[i][j]);
+    	attroff(A_BOLD | COLOR_PAIR(1));
+		}
+	}
+	return;
+}
+
+// ok
+void disegnaTronco(int row, int col){
+    SpriteTronco t = {{{"~ ~ ~ ~ "},
+                                         {" ~ ~ ~ ~"}}};    // 2 righe x 8 char
+    attron(COLOR_PAIR(TRONCHI));
+
+    // ogni tronco occupa due righe, stampa riga per riga
+    for(int tmp_row=0; tmp_row<2; tmp_row++){
+        mvprintw(row+tmp_row, col, t.sprite[tmp_row]);
+    }
+    
+    attroff(COLOR_PAIR(TRONCHI));
+		return;
+}
+
+// ok
+void tronco(int* pipe_fd, int y,int id) {
+   
+		struct PipeData pipeData;
+		pipeData.x=2;
+		pipeData.y=y;
+		pipeData.type='T';
+		pipeData.id=id;
+				
+		int lunghezza_tronco= 9;
+		
+		int direzione;
+		srand(time(NULL));
+		int direzione_casuale= rand()%2;
+		if(direzione_casuale==1){
+			direzione=1;
+		}
+		else{
+			direzione=-1;
+		}
+		
+    while (1) {
+    	if(direzione==1){
+    		if(pipeData.x + lunghezza_tronco + 1 < WIDTH){
+      		pipeData.x++;
+      	}
+      	else{
+      		direzione*=-1;
+      	}
+    	}else{
+    		if(pipeData.x - 1 > 0){
+    			pipeData.x--;
+    		}
+    		else{
+    			direzione*=-1;
+    		}
+    	}
+    	
+      // Invia le coordinate attraverso la pipe
+      write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
+
+      // Aspetta un po' prima di generare nuove coordinate forse andrebbe diminuito
+      usleep(100000);
+    }
+}
+
+// stampa un tronco nella matrice che rappresenta lo schermo
+void stampaTroncoInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WIDTH]){
+	int max_row=2;
+	int max_col=9;
+        				
+  for(int i=row;i<row+max_row;i++){
+  	for(int j=col;j<col+max_col;j++){
+    	screenMatrix[i][j].ch='T';
+    	screenMatrix[i][j].color=TRONCHI;
+    }
+  }
+  return;
+}
+
+// ok
+void pulisciTroncoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH],struct ScreenCell (*staticScreenMatrix)[WIDTH]){
+	int max_row=2;
+	int max_col=9;
+  if(row!=-1){
+  	for(int i=row;i<row+max_row;i++){
+  		for(int j=col;j<col+max_col;j++){
+    		screenMatrix[i][j].ch=staticScreenMatrix[i][j].ch;
+    		screenMatrix[i][j].color=staticScreenMatrix[i][j].color;
+    	}
+  	}
+  }      				
+  return;
+}
+
+// ok
+void stampaMatrice(struct ScreenCell (*screenMatrix)[WIDTH]){
+	for(int i=0;i<HEIGHT;i++){
+		for(int j=0;j<WIDTH;j++){
+			attron(COLOR_PAIR(screenMatrix[i][j].color));
+			mvaddch(i, j, screenMatrix[i][j].ch);
+			attron(COLOR_PAIR(screenMatrix[i][j].color));
+		}
+	}
+	return;
+}
+
+// ok
+void aggiornaPosizioneOggetto(struct PipeData *pipeData,
+															struct PipeData *old_pos,
+															struct ScreenCell (*screenMatrix)[WIDTH],
+															struct ScreenCell (*staticScreenMatrix)[WIDTH]){
+	// se pipedata è diverso da troncodata_old allora le coordinate sono cambiate pulisco la matrice e ristampo sulla matrice
+  if(pipeData->x!=old_pos->x || pipeData->y!=old_pos->y){
+        				
+  	pulisciTroncoInMatrice(old_pos->y,old_pos->x,screenMatrix,staticScreenMatrix);
+        		
+    stampaTroncoInMatrice(pipeData->y,pipeData->x,screenMatrix);
+        	
+    // aggiorno pozizione al passo precedente
+    old_pos->x=pipeData->x;
+    old_pos->y=pipeData->y;
+	}
+	return;
+}
+
+// ok
+void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
+	// inizializzazione prime 4 righe
+	for(int i=0;i<4;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = SFONDO; 
+		}
+	}
+	
+	// inizializzazione tane
+	for(int i=4;i<9;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = TANE; 
+		}
+	}
+	
+	// inizializzazione fiume
+	for(int i=9;i<19;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = FIUME; 
+		}
+	}
+	
+	// inizializzazione prato
+	for(int i=19;i<22;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = PRATO; 
+		}
+	}
+	
+	// inizializzazione strada
+	for(int i=22;i<31;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = STRADA; 
+		}
+	}
+	
+	// inizializzazione striscia
+	for(int j=0;j<WIDTH;j++){
+		screenMatrix[26][j].ch = ' ';
+		screenMatrix[26][j].color = STRISCIA; 
+	}
+	
+	// inizializzazione marciapiede
+	for(int i=31;i<33;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = MARCIAPIEDE; 
+		}
+	}
+	
+	// inizializzazione sezione bottom
+	for(int i=33;i<37;i++){
+		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			screenMatrix[i][j].color = SFONDO; 
+		}
+	}
+	return;
+}
+
