@@ -57,6 +57,7 @@ void pulisciRanaInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WI
 void stampaRanaInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH]);
 
 int main() {
+		srand(time(NULL));
 		
 		initscr(); // Inizializza ncurses
     curs_set(FALSE); // Nasconde il cursore
@@ -94,6 +95,7 @@ int main() {
         exit(0);
     }
     
+    //srand(time(NULL));
     // Crea il processo per il tronco 1
     pid_t tronco_pid = fork();
     if (tronco_pid < 0) {
@@ -101,8 +103,9 @@ int main() {
         return 1;
     } else if (tronco_pid == 0) {
         // Processo tronco 1
+        //int col_tronco = (int) rand()%(WIDTH-10)
         close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
-        tronco(pipe_fd,10,1);
+        tronco(pipe_fd,10, 1);
         exit(0);
     }
     
@@ -299,9 +302,12 @@ void disegnaTronco(int row, int col){
 
 // ok
 void tronco(int* pipe_fd, int y,int id) {
-   
+   	//srand(time(NULL));
+   	
+   	int spawn_rand = rand() % 100;
+   	
 		struct PipeData pipeData;
-		pipeData.x=2;
+		pipeData.x=rand() % 100;
 		pipeData.y=y;
 		pipeData.type='T';
 		pipeData.id=id;
@@ -309,7 +315,7 @@ void tronco(int* pipe_fd, int y,int id) {
 		int lunghezza_tronco= 9;
 		
 		int direzione;
-		srand(time(NULL));
+		
 		int direzione_casuale= rand()%2;
 		if(direzione_casuale==1){
 			direzione=1;
@@ -453,7 +459,7 @@ void aggiornaPosizioneOggetto(struct PipeData *pipeData,
 
 // ok
 void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
-	srand(time(NULL));
+	//srand(time(NULL));
 	// inizializzazione prime 4 righe
 	
 	// variabili di gioco da rendere globali
@@ -525,7 +531,7 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 	}
 	
 	// inizializzazione fiume
-	srand(time(NULL));
+	//srand(time(NULL));
 	
 	for(int i=9;i<19;i++){
 		for(int j=0;j<WIDTH;j++){
