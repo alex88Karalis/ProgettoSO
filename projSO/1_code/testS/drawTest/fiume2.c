@@ -453,11 +453,28 @@ void aggiornaPosizioneOggetto(struct PipeData *pipeData,
 
 // ok
 void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
+	srand(time(NULL));
 	// inizializzazione prime 4 righe
-	char* score_hud = "SCORE: 0";
-	int score_hud_len = strlen(score_hud);
-	int start_x_hud = WIDTH/2;
-	int end_x_hud = WIDTH/2 + score_hud_len +1;
+	
+	// variabili di gioco da rendere globali
+	int score=rand()%100; 
+	int livello= rand()%10;
+	
+	char* score_hud = "Livello: %d    SCORE: %d";
+	
+	char score_hud[WIDTH];
+	char score_string[15] ;
+	sprintf(score_string, "SCORE: %3d" , score); 
+	char lv_string[15];
+	sprintf(lv_string, "Livello: %2d \t" , livello);
+	
+	// sistemare entrambe le stringe su una sola stringa ...da finire..
+	strcat(score_hud, score_string);
+	
+	
+	int score_hud_len = strlen(score_string);
+	int start_x_hud = WIDTH/10;
+	int end_x_hud = WIDTH/10 + score_hud_len +1;
 	int score_hud_index = 0;
 	
 	for(int i=0;i<4;i++){
@@ -465,7 +482,7 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 			
 			if (i==1 && (j>start_x_hud && j< end_x_hud) ){  // posizione della scritta riga#1 a metà schermo
 				
-				screenMatrix[i][j].ch = score_hud[score_hud_index];  //stampa i caratteri della scritta
+				screenMatrix[i][j].ch = score_string[score_hud_index];  //stampa i caratteri della scritta
 				score_hud_index = (score_hud_index+1)%score_hud_len; // aggiorna indice per la stringa
 			}else{
 				screenMatrix[i][j].ch = ' ';
@@ -487,6 +504,8 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 	
 	for(int i=4;i<9;i++){
 		for(int j=0;j<WIDTH;j++){
+			screenMatrix[i][j].ch = ' ';
+			
 			if(i>5 )		// dalla riga #6 in poi
 			{
 				if(j%(freqTane -colsTana)==0){ // se j raggiunge la larghezza della tana
@@ -494,13 +513,19 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
     		}
     		if(!tana){				
         	screenMatrix[i][j].color = FIUME;
-    		}else{
+    		}else{										// zona delle tane gialle
+    			int r=rand()%1000;
+    			if(r%3==0){
+    				screenMatrix[i][j].ch = '`';
+    			} else if(r%7==0){
+    				screenMatrix[i][j].ch = ';';
+    			}
     			screenMatrix[i][j].color = TANE;
     		}
 			}else{														//prime due righe del blocco tane
 				screenMatrix[i][j].color = TANE;
 			}
-			screenMatrix[i][j].ch = ' ';
+			
 			
 			/*-------
 			screenMatrix[i][j].ch = ' ';
