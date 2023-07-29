@@ -303,11 +303,15 @@ void disegnaTronco(int row, int col){
 // ok
 void tronco(int* pipe_fd, int y,int id) {
    	//srand(time(NULL));
-   	
-   	int spawn_rand = rand() % 100;
+   	int i=0;
+   	int spawn_rand;
+   	do{
+   		 spawn_rand = rand() % 100;
+   		 i++;
+   	}while(i!=id);
    	
 		struct PipeData pipeData;
-		pipeData.x=rand() % 100;
+		pipeData.x=spawn_rand;
 		pipeData.y=y;
 		pipeData.type='T';
 		pipeData.id=id;
