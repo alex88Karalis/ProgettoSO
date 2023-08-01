@@ -20,6 +20,14 @@
 #define STRISCIA 8
 #define MARCIAPIEDE 9
 
+/**
+		Versione del main con un processo "gestore Figli" 
+		che si occupa di controllare le coordinate di spawn dei processi auto e tronchi
+		e determinarne la direzione.
+*/
+
+
+
 // Definizione della struttura dati per le coordinate (x, y) e per il tipo
 struct PipeData {
     int x;
@@ -42,7 +50,7 @@ struct ScreenCell{
 
 void drawProcess(int* pipe_fd);
 void moveProcess(int* pipe_fd);
-void tronco(int* pipe_fd, int y,int id);
+void tronco(int* pipe_fd, int y, int direzione_x, int id);
 void printFrog(int x,int y);
 void disegnaTronco(int row, int col);
 void stampaTroncoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH]);
@@ -95,7 +103,70 @@ int main() {
         exit(0);
     }
     
-    //srand(time(NULL));
+    pid_t gestore_figli_pid = fork();
+    if(gestore_figli_pid < 0){
+    	perror("Fork failed");
+      return 1;
+    }else if(gestore_figli_pid == 0){  // gestore tronchi
+    
+    		int dir_tronco[3];
+    		int tmp_r = rand()%2; // imposta direzione random del primo tronco
+    		if(tmp_r == 1){
+    			dir_tronco[0]= 1;
+    		}else{
+    			dir_tronco[0]= -1;
+    		}
+    		dir_tronco[1]= -1* dir_tronco[0]; // imposta la direzione del tronco opposta al tronco precedente
+    		dir_tronco[2]= -1* dir_tronco[1];
+    		
+    		
+    	// Crea il processo per il tronco 1
+				pid_t tronco_pid = fork();
+				if (tronco_pid < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid == 0) {
+				    // Processo tronco 1
+				    //int col_tronco = (int) rand()%(WIDTH-10)
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,10, dir_tronco[0] ,1);
+				    exit(0);
+				}
+				
+				// Crea il processo per il tronco 2
+				pid_t tronco_pid2 = fork();
+				if (tronco_pid2 < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid2 == 0) {
+				    // Processo tronco 2
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,13, dir_tronco[1],2);
+				    exit(0);
+				}
+				
+				// Crea il processo per il tronco 3
+				pid_t tronco_pid3 = fork();
+				if (tronco_pid3 < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid3 == 0) {
+				    // Processo tronco 3
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,16, dir_tronco[2],3);
+				    exit(0);
+				}
+				//gestore tronchi
+				//aspetta termine dei figli-tronchi
+				wait(NULL);
+				wait(NULL);
+				wait(NULL);
+				exit(0);
+    
+    } // continua il padre...
+    
+    
+    /*
     // Crea il processo per il tronco 1
     pid_t tronco_pid = fork();
     if (tronco_pid < 0) {
@@ -132,14 +203,14 @@ int main() {
         tronco(pipe_fd,16,3);
         exit(0);
     }
-    
+    /**/
     // Chiudi le estremità della pipe nel processo padre
     close(pipe_fd[0]);
     close(pipe_fd[1]);
 
     // Aspetta che i processi figlio terminino
-    wait(NULL);
-    wait(NULL);
+    //wait(NULL);
+    //wait(NULL);
     wait(NULL);
     wait(NULL);
     wait(NULL);
@@ -301,8 +372,9 @@ void disegnaTronco(int row, int col){
 }
 
 // ok
-void tronco(int* pipe_fd, int y,int id) {
-   	//srand(time(NULL));
+void tronco(int* pipe_fd, int y, int direzione_x, int id) {
+   	
+   	// determina random la coordinata_X  di spawn del tronco 
    	int i=0;
    	int spawn_rand;
    	do{
@@ -315,11 +387,11 @@ void tronco(int* pipe_fd, int y,int id) {
 		pipeData.y=y;
 		pipeData.type='T';
 		pipeData.id=id;
-		
+				
 		int lunghezza_tronco= 9;
 		
-		int direzione;
-		
+		int direzione = direzione_x;
+		/*
 		int direzione_casuale= rand()%2;
 		if(direzione_casuale==1){
 			direzione=1;
@@ -327,8 +399,9 @@ void tronco(int* pipe_fd, int y,int id) {
 		else{
 			direzione=-1;
 		}
-		
+		/**/
     while (1) {
+    	
     	if(direzione==1){
     		if(pipeData.x + lunghezza_tronco + 1 < WIDTH){
       		pipeData.x++;
@@ -344,7 +417,7 @@ void tronco(int* pipe_fd, int y,int id) {
     			direzione*=-1;
     		}
     	}
-    	
+    	//pipeData.x+=direzione;
       // Invia le coordinate attraverso la pipe
       write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
 

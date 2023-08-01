@@ -20,6 +20,14 @@
 #define STRISCIA 8
 #define MARCIAPIEDE 9
 
+/**
+		Versione del main con un processo "gestore Figli" 
+		che si occupa di controllare le coordinate di spawn dei processi auto e tronchi
+		e determinarne la direzione.
+*/
+
+
+
 // Definizione della struttura dati per le coordinate (x, y) e per il tipo
 struct PipeData {
     int x;
@@ -30,8 +38,18 @@ struct PipeData {
 
 //							 Sprite per i Tronchi
 typedef struct {
-    char sprite[2][9]; // 2 righe - 8 char + terminatore di stringa 
+    char sprite[2][9]; // 2 righe - 9 char  
 } SpriteTronco;
+
+typedef struct {
+		char sprite[2][5]; // 2righe - 4 char + terminatore
+}SpriteAuto;
+
+typedef struct {
+		char sprite[2][8]; // 2righe - 7 char + terminatore
+}SpriteCamion;
+
+
 
 struct ScreenCell{
 	char ch;
@@ -42,7 +60,7 @@ struct ScreenCell{
 
 void drawProcess(int* pipe_fd);
 void moveProcess(int* pipe_fd);
-void tronco(int* pipe_fd, int y,int id);
+void tronco(int* pipe_fd, int y, int direzione_x, int id);
 void printFrog(int x,int y);
 void disegnaTronco(int row, int col);
 void stampaTroncoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH]);
@@ -55,6 +73,14 @@ void aggiornaPosizioneOggetto(struct PipeData *pipeData,
 void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]);
 void pulisciRanaInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH],struct ScreenCell (*staticScreenMatrix)[WIDTH]);
 void stampaRanaInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH]);
+
+void macchina(int* pipe_fd, int y, int direzione_x, int id);
+void aggiornaPosizioneAuto(struct PipeData *pipeData,
+															struct PipeData *old_pos,
+															struct ScreenCell (*screenMatrix)[WIDTH],
+															struct ScreenCell (*staticScreenMatrix)[WIDTH]);
+void pulisciAutoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH],struct ScreenCell (*staticScreenMatrix)[WIDTH]);
+void stampaAutoInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WIDTH]);
 
 int main() {
 		srand(time(NULL));
@@ -95,50 +121,120 @@ int main() {
         exit(0);
     }
     
-    //srand(time(NULL));
-    // Crea il processo per il tronco 1
-    pid_t tronco_pid = fork();
-    if (tronco_pid < 0) {
-        perror("Fork failed");
-        return 1;
-    } else if (tronco_pid == 0) {
-        // Processo tronco 1
-        //int col_tronco = (int) rand()%(WIDTH-10)
-        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
-        tronco(pipe_fd,10, 1);
-        exit(0);
-    }
+    pid_t gestore_figli_pid = fork();
+    if(gestore_figli_pid < 0){
+    	perror("Fork failed");
+      return 1;
+    }else if(gestore_figli_pid == 0){  // gestore tronchi
     
-    // Crea il processo per il tronco 2
-    pid_t tronco_pid2 = fork();
-    if (tronco_pid2 < 0) {
-        perror("Fork failed");
-        return 1;
-    } else if (tronco_pid2 == 0) {
-        // Processo tronco 2
-        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
-        tronco(pipe_fd,13,2);
-        exit(0);
-    }
+    		int dir_tronco[3];
+    		int tmp_r = rand()%2; // imposta direzione random del primo tronco
+    		if(tmp_r == 1){
+    			dir_tronco[0]= 1;
+    		}else{
+    			dir_tronco[0]= -1;
+    		}
+    		dir_tronco[1]= -1* dir_tronco[0]; // imposta la direzione del tronco opposta al tronco precedente
+    		dir_tronco[2]= -1* dir_tronco[1];
+    		
+    		
+    	// Crea il processo per il tronco 1
+				pid_t tronco_pid = fork();
+				if (tronco_pid < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid == 0) {
+				    // Processo tronco 1
+				    //int col_tronco = (int) rand()%(WIDTH-10)
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,10, dir_tronco[0] ,1);
+				    exit(0);
+				}
+				
+				// Crea il processo per il tronco 2
+				pid_t tronco_pid2 = fork();
+				if (tronco_pid2 < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid2 == 0) {
+				    // Processo tronco 2
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,13, dir_tronco[1],2);
+				    exit(0);
+				}
+				
+				// Crea il processo per il tronco 3
+				pid_t tronco_pid3 = fork();
+				if (tronco_pid3 < 0) {
+				    perror("Fork failed");
+				    return 1;
+				} else if (tronco_pid3 == 0) {
+				    // Processo tronco 3
+				    close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+				    tronco(pipe_fd,16, dir_tronco[2],3);
+				    exit(0);
+				}
+				//gestore tronchi
+				//aspetta termine dei figli-tronchi
+				wait(NULL);
+				wait(NULL);
+				wait(NULL);
+				exit(0);
     
-    // Crea il processo per il tronco 3
-    pid_t tronco_pid3 = fork();
-    if (tronco_pid3 < 0) {
-        perror("Fork failed");
-        return 1;
-    } else if (tronco_pid3 == 0) {
-        // Processo tronco 3
-        close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
-        tronco(pipe_fd,16,3);
-        exit(0);
-    }
+    } //fine gestore tronchi, continua il padre...
     
+    pid_t gestore_auto_pid = fork();
+    /*----------------Gestore figli macchine/caminon ---------*/
+    if (gestore_auto_pid < 0) {
+		    perror("Fork failed");
+		    return 1;
+		} else if (gestore_auto_pid == 0) { 
+				// gestore macchine
+				
+				pid_t macchina_pid1 = fork();
+				if (macchina_pid1 < 0) {
+		    	perror("Fork failed");
+		    	return 1;
+				} else if (macchina_pid1 == 0) {
+					// figlio-macchina 1
+					int row_y = 24;
+					int direzione_x = 1;
+					int id = 4;
+					close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+					macchina(pipe_fd, row_y, direzione_x, id);
+					exit(0);
+					
+					 
+				}// continua gestore macchine...
+				
+				pid_t macchina_pid2 = fork();
+				if (macchina_pid2 < 0) {
+		    	perror("Fork failed");
+		    	return 1;
+				} else if (macchina_pid2 == 0) {
+					// figlio-macchina 1
+					int row_y = 27;
+					int direzione_x = -1;
+					int id = 5;
+					close(pipe_fd[0]); // Chiudi l'estremità di lettura della pipe
+					macchina(pipe_fd, row_y, direzione_x, id);
+					exit(0);
+				
+				}// continua gestore macchine...
+				
+				wait(NULL); //aspetta fine di macchina1
+				wait(NULL); //aspetta fine di macchina2
+				exit(0);
+				
+				
+		}//fine gestore macchine, continua il padre...
+				
     // Chiudi le estremità della pipe nel processo padre
     close(pipe_fd[0]);
     close(pipe_fd[1]);
 
     // Aspetta che i processi figlio terminino
-    wait(NULL);
+    //moveProcess, drawProcess, gestore-tronchi, gestore-macchine
     wait(NULL);
     wait(NULL);
     wait(NULL);
@@ -224,6 +320,19 @@ void drawProcess(int* pipe_fd) {
     old_pos[3].type=' ';
     old_pos[3].id=3;
     
+    // auto
+    old_pos[4].x=-1;
+    old_pos[4].y=-1;
+    old_pos[4].type=' ';
+    old_pos[4].id=4;
+    
+    // auto 2
+    old_pos[5].x=-1;
+    old_pos[5].y=-1;
+    old_pos[5].type=' ';
+    old_pos[5].id=5;
+    
+    
     // inizializzazione matrice che rappresenta lo schermo
 		struct ScreenCell screenMatrix[HEIGHT][WIDTH];
 		inizializzaMatriceSchermo(screenMatrix);
@@ -274,9 +383,27 @@ void drawProcess(int* pipe_fd) {
         		default:
         			break;
         	
-        		}// chiusura switch
-        	}// chiusura if type==T
+      		}// chiusura switch
+    		}// chiusura if type==T
         
+        
+        //sono coordinate auto
+        if(pipeData.type=='A'){ 
+        	switch(pipeData.id){
+        		case 4:
+        			/*------	aggiorna posizione auto	---------*/
+	        	 	aggiornaPosizioneAuto(&pipeData, &old_pos[4], screenMatrix, staticScreenMatrix);
+        			break;
+      			case 5:
+      				aggiornaPosizioneAuto(&pipeData, &old_pos[5], screenMatrix, staticScreenMatrix);
+      				break;
+    				default:
+    					break;
+        	}//end switch
+        }//end if type==A
+        
+        
+        //---------continua drawProcess------------
         	clear(); // Pulisci la finestra di gioco 
 					stampaMatrice(screenMatrix); // stampa a video l'intera matrice
         	refresh(); // Aggiorna la finestra
@@ -301,8 +428,9 @@ void disegnaTronco(int row, int col){
 }
 
 // ok
-void tronco(int* pipe_fd, int y,int id) {
-   	//srand(time(NULL));
+void tronco(int* pipe_fd, int y, int direzione_x, int id) {
+   	
+   	// determina random la coordinata_X  di spawn del tronco 
    	int i=0;
    	int spawn_rand;
    	do{
@@ -315,20 +443,13 @@ void tronco(int* pipe_fd, int y,int id) {
 		pipeData.y=y;
 		pipeData.type='T';
 		pipeData.id=id;
-		
+				
 		int lunghezza_tronco= 9;
 		
-		int direzione;
-		
-		int direzione_casuale= rand()%2;
-		if(direzione_casuale==1){
-			direzione=1;
-		}
-		else{
-			direzione=-1;
-		}
+		int direzione = direzione_x;
 		
     while (1) {
+    	
     	if(direzione==1){
     		if(pipeData.x + lunghezza_tronco + 1 < WIDTH){
       		pipeData.x++;
@@ -344,14 +465,15 @@ void tronco(int* pipe_fd, int y,int id) {
     			direzione*=-1;
     		}
     	}
-    	
+    	//pipeData.x+=direzione;
       // Invia le coordinate attraverso la pipe
       write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
 
       // Aspetta un po' prima di generare nuove coordinate forse andrebbe diminuito
       usleep(100000);
     }
-}
+}//end tronco
+
 
 // stampa un tronco nella matrice che rappresenta lo schermo
 void stampaTroncoInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WIDTH]){
@@ -379,7 +501,7 @@ void stampaTroncoInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WI
     sprite_y++;
   }
   return;
-}
+}//end stampaTroncoInMatrice
 
 // stampa rana nella matrice che rappresenta lo schermo
 void stampaRanaInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WIDTH]){
@@ -463,7 +585,6 @@ void aggiornaPosizioneOggetto(struct PipeData *pipeData,
 
 // ok
 void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
-	//srand(time(NULL));
 	// inizializzazione prime 4 righe
 	
 	// variabili di gioco da rendere globali
@@ -488,11 +609,6 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 				screenMatrix[i][j].ch = ' ';
 			}
 			screenMatrix[i][j].color = SFONDO;
-			
-			/* ----------------------------
-			screenMatrix[i][j].ch = ' ';
-			screenMatrix[i][j].color = SFONDO;
-			/**/ 
 		}
 	}
 	
@@ -526,16 +642,10 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 				screenMatrix[i][j].color = TANE;
 			}
 			
-			
-			/*-------
-			screenMatrix[i][j].ch = ' ';
-			screenMatrix[i][j].color = TANE;
-			/**/ 
 		}
 	}
 	
 	// inizializzazione fiume
-	//srand(time(NULL));
 	
 	for(int i=9;i<19;i++){
 		for(int j=0;j<WIDTH;j++){
@@ -547,11 +657,6 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 				screenMatrix[i][j].ch = ' ';
 			}
 			screenMatrix[i][j].color = FIUME;
-			
-			/*
-			screenMatrix[i][j].ch = ' ';
-			screenMatrix[i][j].color = FIUME;
-			/**/ 
 		}
 	}
 	
@@ -569,10 +674,6 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 			}
 			screenMatrix[i][j].color = PRATO;
 			
-			/*
-			screenMatrix[i][j].ch = ' ';
-			screenMatrix[i][j].color = PRATO;
-			/**/ 
 		}
 	}
 	
@@ -606,5 +707,111 @@ void inizializzaMatriceSchermo(struct ScreenCell (*screenMatrix)[WIDTH]){
 		}
 	}
 	return;
+}//end InizializzaMatriceSchermo
+
+
+void macchina(int* pipe_fd, int y, int direzione_x, int id){
+	   	// determina random la coordinata_X  di spawn della macchina 
+   	int i=0;
+   	int spawn_rand;
+   	do{
+   		 spawn_rand = rand() % 100;
+   		 i++;
+   	}while(i!=id);
+   	
+		struct PipeData pipeData;
+		pipeData.x=spawn_rand;
+		pipeData.y=y;
+		pipeData.type='A';
+		pipeData.id=id;
+				
+		int lunghezza_auto= 4;
+		
+		int direzione = direzione_x;
+		
+    while (1) {
+    	
+    	if(direzione==1){
+    		if(pipeData.x + lunghezza_auto + 1 < WIDTH){
+      		pipeData.x++;
+      	}
+      	else{	// se l'auto esce dallo schermo a destra, ricompare a sinistra 
+      		//direzione*=-1;
+      		pipeData.x= lunghezza_auto;
+      	}
+    	}else{
+    		if(pipeData.x - 1 > 0){
+    			pipeData.x--;
+    		}
+    		else{
+    			//direzione*=-1;
+    			pipeData.x= WIDTH - lunghezza_auto;
+    		}
+    	}
+    	//pipeData.x+=direzione;
+      // Invia le coordinate attraverso la pipe
+      write(pipe_fd[1], &pipeData, sizeof(struct PipeData));
+
+      // Aspetta un po' prima di generare nuove coordinate forse andrebbe diminuito
+      usleep(100000);
+    }
+}//end macchina
+
+void aggiornaPosizioneAuto(struct PipeData *pipeData,
+															struct PipeData *old_pos,
+															struct ScreenCell (*screenMatrix)[WIDTH],
+															struct ScreenCell (*staticScreenMatrix)[WIDTH]){
+	// se pipedata è diverso da auto_data_old allora le coordinate sono cambiate pulisco la matrice e ristampo sulla matrice
+  if(pipeData->x!=old_pos->x || pipeData->y!=old_pos->y){
+        				
+  	pulisciAutoInMatrice(old_pos->y,old_pos->x,screenMatrix,staticScreenMatrix);	
+    stampaAutoInMatrice(pipeData->y,pipeData->x,screenMatrix);
+        	
+    // aggiorno pozizione al passo precedente
+    old_pos->x=pipeData->x;
+    old_pos->y=pipeData->y;
+	}
+	return;
+}//end aggiornaPosizAuto
+
+void pulisciAutoInMatrice(int row, int col, struct ScreenCell (*screenMatrix)[WIDTH],struct ScreenCell (*staticScreenMatrix)[WIDTH]){
+	//dimensioni auto
+	int max_row=2;
+	int max_col=4; //4char
+  if(row!=-1){
+  	for(int i=row;i<row+max_row;i++){
+  		for(int j=col;j<col+max_col;j++){
+    		screenMatrix[i][j].ch=staticScreenMatrix[i][j].ch;
+    		screenMatrix[i][j].color=staticScreenMatrix[i][j].color;
+    	}
+  	}
+  }      				
+  return;
 }
+
+
+void stampaAutoInMatrice(int row,int col, struct ScreenCell (*screenMatrix)[WIDTH]){
+	//dimensioni auto
+	int max_row=2;
+	int max_col=4;
+  int sprite_y=0;
+  int sprite_x=0;
+  
+  SpriteAuto a = {{"xxxx",
+									 "oooo"}};	// 2 righe x 4 char
+  
+  for(int i=row;i<row+max_row;i++){
+  	for(int j=col;j<col+max_col;j++){
+  	// prendere char dalla sprite e copiarli nella matrice schermo alla posizione relativa corretta
+  		
+  		screenMatrix[i][j].ch = a.sprite[sprite_y][sprite_x]; //copia char sprite nella matrice
+    	screenMatrix[i][j].color=STRADA;
+  		sprite_x= (sprite_x+1)%max_col; // verifica che l'indice per la sprite non ecceda la dimensione della sprite
+  		
+    }
+    sprite_y++;
+  }
+  return;
+}//end stampaAutoInMatrice
+
 
