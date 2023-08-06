@@ -1,0 +1,73 @@
+/*-----------------------------------------------------------------------------------------------------------------------------------------------*/
+// #1TODO# invece che stampare la X stampare la rana:
+//         (correggere lo scrittore in modo che la rana non esca dai bordi)
+//      OK serve una funzione che stampi lo script della rana void printFrog()
+
+// #2TODO# stampare il campo da gioco(quindi implementare colori)
+
+// #3TODO# eliminare effetto pac-man, non inviare dati in pipe se lo spostamento non è permesso, 
+//        controllo direttamente all'interno del processo scrittore
+
+// #4TODO# ideare un metodo per stampare solamente le effettive modifiche e non tutta la matrice ogni volta,
+//        cosi non si deve pulire interamente lo schermo ogni volta
+//        1. possibile approccio: struttura dati che tenga le celle della matrice sporcata
+//        2. un altro approccio sarebbe inserire un flag all'interno delle celle della matrice ma facendo cosi occorrerebbe scorrere
+//           l'intera matrice comunque
+
+// #5TODO# dividere il codice in più file uno per il disegnatore ed uno per lo scrittore
+
+// #6TODO# scrivere il processo proiettile che deve essere fatto partire da chi?
+//        se lo fa partire il disegnatore allora devo tenere la pipe in scrittura aperta all'interno cosi da poterla passare
+//        il disegnatore fa la fork per il proiettile una volta che riceve in pipe il carattere spazio dal processo disegnatore
+
+// #7TODO# schermata iniziale di gioco: all'avvio del programma appare a schermo magari con un animazione la schermata iniziale
+//        con il nome del gioco in grande, sotto il nome del gioco una scritta di benvenuto e l'invito a premere un tasto per contiunare...
+//        il programma principale lancia una fork ed esegue il programma schermataIniziale() ed aspetta che termini per proseguire
+
+// #8TODO# generalità sui menu, il menu deve apparire al centro dello schermo racchiuso dentro una box(), in alto il logo del gioco,
+//        seguito dalle opzioni, le opzione possono essere navigabili attraverso i tasti freccia su e giu e l'opzione preselezionata deve essere
+//        evidenzionata colorando lo sfondo
+//        ogni opzione è alta 3 con una riga vuota seguita da una riga in cui in modo centrato è scritta l'opzione seguita a sua volta da una riga
+//        vuota tutte e 3 le righe sono colorate se preselezionate
+
+// #9TODO# munu iniziale: dopo la schermata iniziale si fa partire un altro programma menuIniziale() con le opzioni continua(solo se ci sono    
+//        salvataggi, in quel caso si carica quello più recente), una opzione nuovapartita, una opzione carica partita, una opzione setting ed una
+//        opzione esci.
+//        il processo principale aspetta che il processo figlio menuprincipale termini e restituisca un intero che indica la scelta dell'utente
+
+// #10TODO# legenda tasti + breve introduzione al gioco: se nel menu iniziale si è scleta l'opzione nuova partita il programma principale si
+//          occuperà di lanciare il programma creazioneNuovaPartita() a cui viene passata una struttura dati come puntatore,
+//          la struttura dati contine il nome del giocatore (max sei caratteri), il nome della partita (max 20 caratteri)
+//          il programma si occupa di richiedere i dati all'utente controllandone la validità e scrive sulla struttura passata attravero 
+//          il puntatore inoltre legge il file di testo settings in cui sono scritti i settaggi ed scrive nella struttura la difficoltà 
+//          di gioco dopo l'inserimento dei dati il programma stampa una legenda dei tasti e fa una breve descrizione del gioco e di come giocare
+
+// #11TODO# carica partita: se nel menu iniziale si preme carica partita (cosa che è possibile fare solamente se ci sono partite salvate)
+//        il programma principale lancia il programma sceltaPartita() che restituira un intero identificativo del salvataggio scelto
+//        i dati delle partite salvate devono essere letti dal file partiteSalvate.txt 
+
+// #12TODO# menu settings: se premo il tasto settings nel menu iniziale si avvia il processo settings() che stampa a video un menù con le opzioni
+//          volume, difficoltà, volume on/off, volume, torna indietro
+//          la preselezione funziona come per i normali menu ma una volta che si clicca su un opzione questa è modificabile (attraverso i
+//          tasti sx,dx si scorrono le opzioni)
+//          una volta premuto il tasto torna indietro si leggono i valori inseriti e si sovrascrive il file settings
+
+// #13TODO# animazione rana: potrebbero muoversi le zampe?
+
+// #14TODO# test suoni: come funzionano i suoni con ncurses? quanti suoni diversi sono possibili? soundtrack?
+
+// #15TODO# tronchi: 
+//          i tronchi sono tre uno per corsia min_x: 6 max_x: 9, direzione del flusso deve essere casuale, i tronchi rimbalzano e tornano
+//          indietro
+
+// #16TODO# automobili e camion
+
+// #17TODO# nemici
+
+// #18TODO# piu livelli
+
+// #19TODO# gestione difficoltà
+
+// #20TODO# salvataggi
+
+/*-----------------------------------------------------------------------------------------------------------------------------------------------*/
