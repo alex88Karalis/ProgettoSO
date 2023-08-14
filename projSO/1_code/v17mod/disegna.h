@@ -6,7 +6,6 @@
 #include "logo.h"
 #include "menuIniziale.h"
 #include "inizializza.h"
-#include "proiettile.h"
 #define OLDPOSDIM 8
 
 #define RANA_SPRITE {{'\\', '.', '/'}, {'/', '-', '\\'}}

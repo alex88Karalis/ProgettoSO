@@ -28,35 +28,11 @@ void drawProcess(int* pipe_fd) {
   Sprite troncoSprite = {TRONCO_ROWS, TRONCO_COLS, sprite_tronco, TRONCHI};
   Sprite autoSprite = {AUTO_ROWS, AUTO_COLS, sprite_auto, AUTO};
 	
-  // TODO forse è meglio fare una funzione sola che inizializzi entrambe le matrici, FATTO!
+  // TODO forse è meglio fare una funzione sola che inizializzi entrambe le matrici
   ScreenCell screenMatrix[HEIGHT][WIDTH]; // matrice che rappresenta lo schermo
-	//inizializzaMatriceSchermo(screenMatrix); // inizializzazione matrice che rappresenta lo schermo
+	inizializzaMatriceSchermo(screenMatrix); // inizializzazione matrice che rappresenta lo schermo
 	ScreenCell staticScreenMatrix[HEIGHT][WIDTH]; // matrice degli elementi statici dello schermo
-	//inizializzaMatriceSchermo(staticScreenMatrix); // inizializzazione matrice degli elementi statici che rappresenta lo schermo
-	
-	inizializzaMatriceSchermo(screenMatrix, staticScreenMatrix);// inizializza entrambe le matrici
-	
-	// inizializza vettore per registrare posizione dei proiettili
-	
-	
-	int active_bullets=0;
-	int max_bullets = 10;
-	
-	//pid_t pidBullet[max_bullets]; //vettore dei pid dei processiProiettile
-	//pid_t pidBullet; 
-	
-	
-	PipeData old_bullet[10];
-	for(int i=0; i< max_bullets; i++){
-		old_bullet[i].x = old_bullet[i].y = -1;
-		old_bullet[i].type= ' ';
-		old_bullet[i].id=i;
-		
-		//pidBullet[i]=-1; //inizializza tutti i pid a valori non validi
-	}
-	
-	
-	
+	inizializzaMatriceSchermo(staticScreenMatrix); // inizializzazione matrice degli elementi statici che rappresenta lo schermo
 	
 	
   while (1) {
@@ -75,18 +51,9 @@ void drawProcess(int* pipe_fd) {
       case 'S':
       	//proiettile sparato da utente
       	// fa partire il processo proiettile se il numero di proiettili in gioco è minore di 10
-      	if(active_bullets < max_bullets){
-      		avviaProiettile(pipe_fd);
-      		active_bullets++;
-      		beep();
-      	}//end if(troppi proiettili)
       	break;
-      case 'P':				//PROBLEMA: non legge il type=='P' da pipe se mandato da proiettile.???
-      	//aggiorna posizione dei proiettili
-      	// fai il check delle coordinate ed eventualmente fai un flash se il proiettile esce dall'area di gioco
-      	if(pipeData.y == 0){
-      		flash();
-      	}
+      case 'P':
+      	// nuove coordinate proiettile
       	break;
       default:
         break;

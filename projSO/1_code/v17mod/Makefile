@@ -2,7 +2,7 @@
 EXECUTABLE := frog
 
 # Elenco dei file oggetto
-OBJECTS := main.o utilities.o disegna.o auto.o tronco.o rana.o logo.o menuIniziale.o inizializza.o proiettile.o
+OBJECTS := main.o utilities.o disegna.o auto.o tronco.o rana.o logo.o menuIniziale.o inizializza.o
 
 # Compilatore C
 CC := gcc
@@ -22,7 +22,7 @@ $(EXECUTABLE): $(OBJECTS)
 main.o: main.c disegna.h
 	$(CC) $(CFLAGS) -c main.c
 
-disegna.o: disegna.c auto.h tronco.h rana.h logo.h menuIniziale.h inizializza.h proiettile.h
+disegna.o: disegna.c auto.h tronco.h rana.h logo.h menuIniziale.h inizializza.h
 	$(CC) $(CFLAGS) -c disegna.c
 	
 auto.o: auto.c utilities.h
@@ -33,10 +33,6 @@ tronco.o: tronco.c utilities.h
 	
 rana.o: rana.c utilities.h
 	$(CC) $(CFLAGS) -c rana.c
-
-proiettile.o: proiettile.c utilities.h
-	$(CC) $(CFLAGS) -c proiettile.c
-
 
 logo.o: logo.c utilities.h
 	$(CC) $(CFLAGS) -c logo.c
@@ -53,10 +49,3 @@ utilities.o: utilities.c utilities.h
 # Pulizia dei file oggetto e dell'eseguibile
 clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
-
-openAll:
-	gedit *.c *.h &
-
-
-
-

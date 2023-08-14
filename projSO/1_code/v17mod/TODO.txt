@@ -1,3 +1,4 @@
-logo intero + risoluzione bug logo
+macro per il logo
 
 menu iniziale
+

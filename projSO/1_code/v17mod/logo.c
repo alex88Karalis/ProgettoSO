@@ -1,21 +1,32 @@
 #include "logo.h"
 void logo(){
+	// parte da 3 e arriva a 101 questi sono i caratteri liberi all'interno della box
+	// parte da 3 e arriva a 34 questi sono i caratteri liberi all'interno della box
 	nodelay(stdscr, FALSE); // riabilita l'input non bloccante
 	clear(); // pulisce lo schermo
-
-  // ... Stampa il logo del videogioco ...
-  stampaBox(); // stampa la box attorno al logo
-  stampaLogo(); // stampa il logo
-  // stampaTitolo();
+	
+	stampaBox(); // stampa la box attorno al logo
+	
+	mvprintw(STARTROWBENVENUTO,STARTCOLBENVENUTO,"Benvenuto...");
+	refresh();
+  
+  stampaTitolo(STARTROWTITOLO,STARTCOLTITOLO); // stampa il titolo
+  
+  stampaLogo(STARTROWLOGO,STARTCOLLOGO); // stampa il logo
+  
   
   // stampa la scritta premi un tasto per continuare
-  mvprintw((((2+35)/2)),40,"Premi un tasto per continuare..."); // MAGIC NUMBER
+  mvprintw(STARTROWCONTINUA,STARTCOLCONTINUA,"Premi un tasto per continuare...");
+  
+  
   
 
   getch(); // Aspetta che l'utente prema un tasto qualsiasi
 
   nodelay(stdscr, TRUE); // riabilita l'input non bloccante
   
+  clear();
+  refresh();
   clear();
   refresh();
   
@@ -62,24 +73,46 @@ void stampaBox(){
   }
 }
 
-void stampaLogo(){
-
-	int start_row_logo=(((2+35)/2)-7)-5; //MAGIC NUMBER
-	int start_col_logo=((2+102)/2)-9; // MAGIC NUMBER
-	int rows_logo=7; // MAGIC NUMBER
-	int cols_logo=19; // MAGIC NUMBER
-	char logoImg[7][19]={
-																		{' ',' ',' ',' ',' ',' ',' ','_',' ',' ',' ','_',' ',' ',' ',' ',' ',' ',' '},//ok
-																		{' ',' ',' ',' ',' ',' ','(','.',')','_','(','.',')',' ',' ',' ',' ',' ',' '},//ok
-																		{' ',' ',' ','_',' ','(',' ',' ',' ','_',' ',' ',' ',')',' ','_',' ',' ',' '},//ok
-																		{' ',' ','/',' ','\\','/','\'','-','-','-','-','-','\'','\\','/',' ','\\',' ',' '},//ok
-																		{'_','_','\\',' ','(',' ','(',' ',' ',' ',' ',' ',')',' ',')',' ','/','_','_'},//ok
-																		{')',' ',' ',' ','/','\\',' ','\\','.','_','.','/',' ','/','\\',' ',' ',' ','('},//ok
-																		{' ',')','_','/',' ','/','|','\\',' ',' ',' ','/','|','\\',' ','\\','_','(',' '}//ok
+void stampaLogo(int start_row,int start_col){
+	char logoImg[DIMLOGOROW][DIMLOGOCOL]={
+																		{' ',' ',' ',' ',' ',' ',' ','_',' ',' ',' ','_',' ',' ',' ',' ',' ',' ',' '},
+																		{' ',' ',' ',' ',' ',' ','(','.',')','_','(','.',')',' ',' ',' ',' ',' ',' '},
+																		{' ',' ',' ','_',' ','(',' ',' ',' ','_',' ',' ',' ',')',' ','_',' ',' ',' '},
+																		{' ',' ','/',' ','\\','/','\'','-','-','-','-','-','\'','\\','/',' ','\\',' ',' '},
+																		{'_','_','\\',' ','(',' ','(',' ',' ',' ',' ',' ',')',' ',')',' ','/','_','_'},
+																		{')',' ',' ',' ','/','\\',' ','\\','.','_','.','/',' ','/','\\',' ',' ',' ','('},
+																		{' ',')','_','/',' ','/','|','\\',' ',' ',' ','/','|','\\',' ','\\','_','(',' '}
 																	};
-	for(int row=start_row_logo;row<start_row_logo+rows_logo;row++){
-		for(int col=start_col_logo;col<start_col_logo+cols_logo;col++){
-			mvaddch(row, col, logoImg[row - start_row_logo][col - start_col_logo]);
+	for(int row=start_row;row<start_row+DIMLOGOROW;row++){
+		for(int col=start_col;col<start_col+DIMLOGOCOL;col++){
+			attron(COLOR_PAIR(RANA));
+			mvaddch(row, col, logoImg[row - start_row][col - start_col]);
+			attroff(COLOR_PAIR(RANA));
+			usleep(10000);
+			refresh();
 		}
 	}																
+}
+
+void stampaTitolo(int start_row,int start_col){
+
+	char titoloMatrix[DIMTITOLOROW][DIMTITOLOCOL] = {
+        " _____                   _____                ",
+        "|  ___| __ ___   __ _   |  ___| __ ___   __ _ ",
+        "| |_ | '__/ _ \\ / _` |  | |_ | '__/ _ \\ / _` |",
+        "|  _|| | | (_) | (_| |  |  _|| | | (_) | (_| |",
+        "|_|  |_|  \\___/ \\__,  | |_|  |_|  \\___/ \\__, |",
+        "                |___/                   |___/ "
+    };
+    
+    for(int row=start_row;row<start_row+DIMTITOLOROW;row++){
+			for(int col=start_col;col<start_col+DIMTITOLOCOL;col++){
+				attron(COLOR_PAIR(RANA));
+				mvaddch(row, col, titoloMatrix[row - start_row][col - start_col]);
+				attroff(COLOR_PAIR(RANA));
+				usleep(10000);
+				refresh();
+			}
+	}		
+
 }
