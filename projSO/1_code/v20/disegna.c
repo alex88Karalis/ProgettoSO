@@ -61,7 +61,9 @@ void drawProcess(int* pipe_fd) {
 	  		aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix, staticScreenMatrix, &camionSprite);
 	    	break;
 	  	case 'c':
-		  	// NON disegnare il camion per un certo tempo, quando esce dallo schermo
+		  	// aggiorna la posizione ma NON disegna il camion per un certo tempo, quando esce dallo schermo
+		  	aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix, staticScreenMatrix, &camionSprite);
+		  	pulisciSpriteInMatrice(old_pos[pipeData.id].y, old_pos[pipeData.id].x, &camionSprite, screenMatrix, staticScreenMatrix);
 		 		break;
 	  	case 'S':
 		  	// fa partire il processo proiettile se il numero di proiettili in gioco è minore di 10
@@ -151,7 +153,7 @@ void pulisciSpriteInMatrice(int row, int col, Sprite* sprite, ScreenCell (*scree
         }
     }
 }
-//--------------------------------------------------------------------
+//----------------------------------------COLLISIONI----------------------------
 // Ritorna TRUE se oggetto_1 entra nel perimetro di oggetto_2 
 bool checkCollisione(PipeData *object_1, PipeData *object_2, Sprite* sprite_1, Sprite* sprite_2)
 {
