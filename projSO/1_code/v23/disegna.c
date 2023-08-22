@@ -36,6 +36,15 @@ void drawProcess(int* pipe_fd) {
 	int contatore_nemici_in_gioco=0;
 	pid_t array_pid_nemici[3];
 	
+	// strutture di tane
+	Tana tane[5];
+	for(int i =0; i<5; i++){
+		tane[i].info.y = 6;
+		tane[i].info.x = i*22;
+		tane[i].info.id = i;
+		tane[i].status = 0;
+	}
+	
 	// definizione sprite utili
 	char *sprite_rana[RANA_ROWS] = {"\\./","/-\\"};
 	char *sprite_tronco[TRONCO_ROWS] = {"~ ~ ~ ~ ~", " ~ ~ ~ ~ "};
@@ -45,6 +54,9 @@ void drawProcess(int* pipe_fd) {
 	char *sprite_proiettile_nemico[PROIETTILE_ROWS]={"|","v"};
 	char *sprite_nemico[2]={" ^ ","/ \\"};
 	
+	char *sprite_tana_open[TANA_ROWS] = {"           ", "           ", "           "};
+	char *sprite_tana_closed[TANA_ROWS] = {"H         H", "H         H", "HHHHHHHHHHH"};
+	
 	
 	Sprite ranaSprite = {RANA_ROWS, RANA_COLS, sprite_rana, RANA};
   Sprite troncoSprite = {TRONCO_ROWS, TRONCO_COLS, sprite_tronco, TRONCHI};
@@ -53,6 +65,13 @@ void drawProcess(int* pipe_fd) {
   Sprite proiettileSprite = {PROIETTILE_ROWS, PROIETTILE_COLS, sprite_proiettile, PROIETTILE};
   Sprite proiettileNemicoSprite = {PROIETTILE_ROWS,PROIETTILE_COLS,sprite_proiettile_nemico,PROIETTILE};
   Sprite nemicoSprite = {2,3,sprite_nemico,RANA};
+						//--------
+	Sprite tanaApertaSprite = {TANA_ROWS, TANA_COLS, sprite_tana_open, TANE};
+	Sprite tanaChiusaSprite = {TANA_ROWS, TANA_COLS, sprite_tana_closed, TANE};
+	Sprite taneSprite_2 [2];
+	taneSprite_2[OPEN] = tanaApertaSprite;
+	taneSprite_2[CLOSED] = tanaChiusaSprite;
+	
 	
 	// vettore di sprite degli oggetti di gioco, usato per rilevazione delle collisioni
 	Sprite spriteOggetto[7];
@@ -191,17 +210,39 @@ void drawProcess(int* pipe_fd) {
 		bool frogCollision = false;
 		bool autoCollision = false;
 		bool enemyBulletCollision = false;
+		bool taneAperteCollision = false;
+		
+		//TanaStatus t_stat = OPEN;
 		
 		frogCollision = collisioneRana(old_pos, spriteOggetto);
 		autoCollision = collisioneAuto(old_pos, spriteOggetto);
 		enemyBulletCollision= collisioneProiettiliNemici(old_pos, old_pos_proiettili_nemici, spriteOggetto);
-		if((frogCollision && autoCollision) || (enemyBulletCollision) ){beep(); }	
+		
+		taneAperteCollision = collisioneTaneAperte(old_pos, tane, spriteOggetto, taneSprite_2);
+		
+		if(taneAperteCollision){
+		 beep(); 
+	 	}
+	 	
+	 	/*
+	 	for(int i=0; i<5; i++){
+	 		if(tane[i].status == CLOSED){
+	 			//stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite_2[CLOSED], staticScreenMatrix);
+	 			//stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite_2[OPEN], screenMatrix);
+	 			//beep();
+	 		}
+	 	}
+	 	/**/
+	 	
+		if((frogCollision && autoCollision) || (enemyBulletCollision) ){ beep(); }	
     
 		stampaMatrice(screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
     refresh(); // Aggiorna la finestra
 	}//end while
   return;  
 }//end drawProcess
+//--------------------------------------------FINE PROCESSO DISEGNA----------------------------------
+
 
 //-----------------------------------------------------------
 int id_disponibile(pid_t *array_pid, int lunghezza){
@@ -283,10 +324,10 @@ bool checkCollisione(PipeData *object_1, PipeData *object_2, Sprite* sprite_1, S
 {
 	// stabilisce coordinate massime per entrambi gli oggetti 
 	int obj1_maxX, obj1_maxY, obj2_maxX, obj2_maxY; 
-	obj1_maxX = (object_1->x) + (sprite_1->max_col);
-	obj1_maxY = (object_1->y) +1;
-	obj2_maxX = (object_2->x) + (sprite_2->max_col);
-	obj2_maxY = (object_2->y) +1;									//assumendo che tutti gli oggetti siano alti 2row
+	obj1_maxX = (object_1->x) + (sprite_1->max_col-1);
+	obj1_maxY = (object_1->y) + (sprite_1->max_row-1);
+	obj2_maxX = (object_2->x) + (sprite_2->max_col-1);
+	obj2_maxY = (object_2->y) + (sprite_2->max_row-1);									//assumendo che tutti gli oggetti siano alti 2row
 	
 	bool checkUP, checkDOWN, checkLEFT,checkRIGHT;
 	checkUP = checkDOWN = checkLEFT = checkRIGHT = false;
@@ -336,16 +377,14 @@ bool collisioneAuto( PipeData *old_pos, Sprite *array_sprite)
 	
   bool collision=false;
    
-	for(int i=4; i<OLDPOSDIM; i++){ // per ogni oggetto di gioco
-	 	//if(i>=4){							// check collisione con auto/camion
-	 		if(old_pos[i].type=='A')
-	 		{
- 				collision = checkCollisione(&old_pos[i], rana, &array_sprite[AUTO_SPRITE], &array_sprite[RANA_SPRITE]);
-			}else if (old_pos[i].type=='C')
-			{
-				collision = checkCollisione(&old_pos[i], rana, &array_sprite[CAMION_SPRITE], &array_sprite[RANA_SPRITE]);
-	 		}
-	 	//}
+	for(int i=4; i<OLDPOSDIM; i++){ // per ogni auto/camion in gioco (old_pos[4-11])
+ 		if(old_pos[i].type=='A')
+ 		{
+			collision = checkCollisione(&old_pos[i], rana, &array_sprite[AUTO_SPRITE], &array_sprite[RANA_SPRITE]);
+		}else if (old_pos[i].type=='C')
+		{
+			collision = checkCollisione(&old_pos[i], rana, &array_sprite[CAMION_SPRITE], &array_sprite[RANA_SPRITE]);
+ 		}
 	 	if(collision) break; //se rileva collisione ferma il ciclo e ed esce
 	}
  	return collision;
@@ -361,27 +400,30 @@ bool collisioneProiettiliNemici( PipeData *old_pos, PipeData *old_pos_proiettili
 	for(int i=0; i<MAXNPROIETTILINEMICI; i++){ 							// per ogni proiettile nemico di gioco
  		if(old_pos_proiettiliNemici[i].type != 'P'){					// se il proiettile è attivo
  			collision = checkCollisione(&old_pos_proiettiliNemici[i], rana, 
- 																	&array_sprite[PROIETTILE_NEMICO_SPRITE], &array_sprite[RANA_SPRITE]);
+																	&array_sprite[PROIETTILE_NEMICO_SPRITE], &array_sprite[RANA_SPRITE]);
  		}
- 		/*
- 		if(i<4) // check collisione con Tronchi
- 		{ 
- 			
-	 	}
-	 	if(i>=4){							// check collisione con auto/camion
-	 		if(old_pos[i].type=='A')
-	 		{
- 				collision = checkCollisione(&old_pos_proiettiliNemici[i], rana, 
-																		&array_sprite[PROIETTILE_NEMICO_SPRITE], &array_sprite[RANA_SPRITE]);
-			}else if (old_pos[i].type=='C')
-			{
-				collision = checkCollisione(&old_pos_proiettiliNemici[i], rana, 
-																		&array_sprite[PROIETTILE_NEMICO_SPRITE], &array_sprite[RANA_SPRITE]);
-	 		}
-	 	}
-	 	/**/
 	 	if(collision) break; //se rileva collisione ferma il ciclo e ed esce
 	}
+ 	return collision;
+}
+//----------------------------collisione TANE-------------------
+bool collisioneTaneAperte( PipeData *old_pos, Tana *array_tane, Sprite *array_sprite, Sprite *arr_tana_sprite)
+{
+	bool collision=false;
+	PipeData *rana = &old_pos[0];
+	//PipeData *tana = &tanaObj.info;
+	for(int i=0; i<5; i++){
+		PipeData *tana = &array_tane[i].info;
+		
+		if(array_tane[i].status == OPEN){
+			collision = checkCollisione(rana, tana, &array_sprite[RANA_SPRITE], &arr_tana_sprite[OPEN]);
+		}
+		if(collision) {
+			array_tane[i].status = CLOSED;
+			break;
+		}
+	}
+  
  	return collision;
 }
 
