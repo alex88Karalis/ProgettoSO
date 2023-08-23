@@ -68,9 +68,9 @@ void drawProcess(int* pipe_fd) {
 						//--------
 	Sprite tanaApertaSprite = {TANA_ROWS, TANA_COLS, sprite_tana_open, TANE};
 	Sprite tanaChiusaSprite = {TANA_ROWS, TANA_COLS, sprite_tana_closed, TANE};
-	Sprite taneSprite_2 [2];
-	taneSprite_2[OPEN] = tanaApertaSprite;
-	taneSprite_2[CLOSED] = tanaChiusaSprite;
+	Sprite taneSprite [2];
+	taneSprite[OPEN] = tanaApertaSprite;
+	taneSprite[CLOSED] = tanaChiusaSprite;
 	
 	
 	// vettore di sprite degli oggetti di gioco, usato per rilevazione delle collisioni
@@ -211,28 +211,34 @@ void drawProcess(int* pipe_fd) {
 		bool autoCollision = false;
 		bool enemyBulletCollision = false;
 		bool taneAperteCollision = false;
+		bool taneChiuseCollision = false;
+		bool autoProiettiliNemiciCollision = false;
 		
 		//TanaStatus t_stat = OPEN;
 		
 		frogCollision = collisioneRana(old_pos, spriteOggetto);
 		autoCollision = collisioneAuto(old_pos, spriteOggetto);
 		enemyBulletCollision= collisioneProiettiliNemici(old_pos, old_pos_proiettili_nemici, spriteOggetto);
+		autoProiettiliNemiciCollision = collisioneAutoProiettili(old_pos, old_pos_proiettili_nemici, spriteOggetto);
+		;
+		//if(autoProiettiliNemiciCollision){ beep();}
 		
-		taneAperteCollision = collisioneTaneAperte(old_pos, tane, spriteOggetto, taneSprite_2);
+		taneChiuseCollision = collisioneTaneChiuse(old_pos, tane, spriteOggetto, taneSprite);
+		taneAperteCollision = collisioneTaneAperte(old_pos, tane, spriteOggetto, taneSprite);
+		
+		if(taneChiuseCollision) { beep(); }
 		
 		if(taneAperteCollision){
-		 beep(); 
+				beep(); 
+		 		for(int i=0; i<5; i++){
+			 		if(tane[i].status == CLOSED){
+			 			stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite[CLOSED], staticScreenMatrix);
+			 			stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite[CLOSED], screenMatrix);
+			 		}
+			 	}
 	 	}
 	 	
-	 	/*
-	 	for(int i=0; i<5; i++){
-	 		if(tane[i].status == CLOSED){
-	 			//stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite_2[CLOSED], staticScreenMatrix);
-	 			//stampaSpriteInMatrice( tane[i].info.y, tane[i].info.x, &taneSprite_2[OPEN], screenMatrix);
-	 			//beep();
-	 		}
-	 	}
-	 	/**/
+	 	if(autoProiettiliNemiciCollision){ beep();}
 	 	
 		if((frogCollision && autoCollision) || (enemyBulletCollision) ){ beep(); }	
     
@@ -411,10 +417,9 @@ bool collisioneTaneAperte( PipeData *old_pos, Tana *array_tane, Sprite *array_sp
 {
 	bool collision=false;
 	PipeData *rana = &old_pos[0];
-	//PipeData *tana = &tanaObj.info;
+	
 	for(int i=0; i<5; i++){
-		PipeData *tana = &array_tane[i].info;
-		
+		PipeData *tana = &array_tane[i].info; //punta alla struttura PipeData dentro la struct Tana
 		if(array_tane[i].status == OPEN){
 			collision = checkCollisione(rana, tana, &array_sprite[RANA_SPRITE], &arr_tana_sprite[OPEN]);
 		}
@@ -423,9 +428,71 @@ bool collisioneTaneAperte( PipeData *old_pos, Tana *array_tane, Sprite *array_sp
 			break;
 		}
 	}
-  
  	return collision;
 }
+//----------------------------------------
+bool collisioneTaneChiuse( PipeData *old_pos, Tana *array_tane, Sprite *array_sprite, Sprite *arr_tana_sprite)
+{
+	bool collision=false;
+	PipeData *rana = &old_pos[0];
+	
+	for(int i=0; i<5; i++){
+		PipeData *tana = &array_tane[i].info; //punta alla struttura PipeData dentro la struct Tana
+		if(array_tane[i].status == CLOSED){
+			collision = checkCollisione(rana, tana, &array_sprite[RANA_SPRITE], &arr_tana_sprite[CLOSED]);
+		}
+		if(collision) {
+			//array_tane[i].status = CLOSED;
+			break;
+		}
+	}
+ 	return collision;
+}
+//-----------------------------------------collisione auto-proiettili------------
+bool collisioneAutoProiettili( PipeData *old_pos, PipeData * array_proiettili, Sprite *array_sprite)
+{
+	PipeData *rana = &old_pos[0];
+	PipeData *veicolo;
+	PipeData *proiettile;
+	TipoSprite spriteVeicolo;
+	
+  bool collision=false;
+  
+	for(int i=0; i<MAXNPROIETTILI; i++){ 							// per ogni proiettile nemico di gioco
+		proiettile = &array_proiettili[i];  					// prendi proiettile attuale
+		
+		for(int j=4; j<OLDPOSDIM; j++){												// per ogni veicolo  in gioco
+			veicolo =  &old_pos[j];															// prendi veicolo corrente
+			
+			if(proiettile->type == 'p'){					// se il proiettile è attivo
+				switch(veicolo->type){							//controlla tipo del veicolo, scegli la sprite corretta
+					case 'A':
+						spriteVeicolo = AUTO_SPRITE;
+						;
+						break;
+					case 'C':
+						spriteVeicolo = CAMION_SPRITE;
+						;
+						break;
+					default:
+						spriteVeicolo = CAMION_SPRITE;
+						;
+						break;
+				}
+	 			collision = checkCollisione(proiettile, veicolo, 
+																		&array_sprite[PROIETTILE_NEMICO_SPRITE], &array_sprite[ spriteVeicolo ]);
+	 		}
+		 	if(collision) break; //se rileva collisione ferma il ciclo e ed esce
+		}
+ 		
+	}
+ 	return collision;
+}
+
+
+
+
+
 
 
 //------------------------------------------------
