@@ -15,6 +15,10 @@ void avviaDrawProcess(int pipe_fd[2]) {
 
 // processo che si occupa di disegnare lo schermo
 void drawProcess(int* pipe_fd) {
+	pid_t pidRana;
+	pidRana = avviaRana(pipe_fd); // avvia il processo che gestisce il movimento della rana
+	
+	
 		
 	PipeData pipeData; // struttura per leggere la pipe
 	
@@ -202,6 +206,10 @@ void drawProcess(int* pipe_fd) {
       	else{
       		aggiornaPosizioneOggetto(&pipeData, &old_pos_proiettili_nemici[pipeData.id], screenMatrix, staticScreenMatrix, &proiettileNemicoSprite);
       	}
+      	break;
+      	case 'Z':
+      		beep();
+      		break;
       default:
         break;
     }//end switch-case su type
@@ -240,7 +248,13 @@ void drawProcess(int* pipe_fd) {
 	 	
 	 	if(autoProiettiliNemiciCollision){ beep();}
 	 	
-		if((frogCollision && autoCollision) || (enemyBulletCollision) ){ beep(); }	
+		if((frogCollision && autoCollision) || (enemyBulletCollision) )
+		{ 
+			beep();
+			kill(pidRana, SIGKILL);
+			waitpid(pidRana, NULL,0);
+			pidRana = avviaRana(pipe_fd);
+		}	
     
 		stampaMatrice(screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
     refresh(); // Aggiorna la finestra
