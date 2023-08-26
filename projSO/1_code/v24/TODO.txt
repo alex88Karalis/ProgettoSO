@@ -1,18 +1,64 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> menu iniziale:
 
-menu iniziale:
+		funzione generica per le box stampaBox(int start_row,int start_col,int color,char up_down_char,char sides_char)
+		funzione per il logo e stampa box generica vanno in file a parte, adattare il makefile
+		stampa box e logo vengono utilizzate da logo e menuIniziale
 
-funzione generica per le box stampaBox(int start_row,int start_col,int color,char up_down_char,char sides_char)
-funzione per il logo e stampa box generica vanno in file a parte, adattare il makefile
-stampa box e logo vengono utilizzate da logo e menuIniziale
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> per il proiettile: 
 
+		capire perchè ogni tanto la matrice si corrompe
 
-per il proiettile: 
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> nemico/nemici:
 
-capire perchè ogni tanto la matrice si corrompe
+		stama del nemico
 
+		punto partenza proiettile= posizione nemico = posizione tronco sincronia, come?
 
-nemico/nemici:
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> collisioni:
+		
+		. serve conservare il pid della rana per poterla uccidere
+		. occorre spostare tutti gli avvi di processi oggetti all'interno di disegna
+		. all'interno di disegna serve conservare i pid di tutti gli oggetti
+		. usare i segnali per mettere in pausa e riprendere i processi
+		
+		-> collisioni con auto/camion:
+				uccidere il pid della rana e farlo ripartire
+				
+		-> collisioni con tane chiuse:
+				uccidere il pid della rana e farlo ripartire
+		
+		-> collisione con tronco sul quale è presente un nemico:
+				uccidere il pid della rana e farlo ripartire
+				
+		-> collisione con proiettile nemico:
+				uccidere il pid della rana e farlo ripartire
+				
+		-> collisione nemico e proiettile amico:
+				uccidere nemico tramite pid(gia salvato in array)
+				
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> menu pausa:
+		se premo esc la rana manda in pipe il carattere esc, disegna lo legge e stoppa tutti i processi
+		visualizzare menu con continua impostazioni ed esci e salva
+		
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> salvataggio e caricamento:
+		. creare struttura dati per salvare i dati
+		. i salvataggi vanno in un file di testo chiamato salvataggi.txt
+		
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> interazione rana tronchi:
+		la rana deve spostarsi assieme al tronco
+		IDEA: pipe rana disegna dove disegna scrive, quando la rana si trova su un trono disegna si occupa di sovrascrivere le coordinate della rana
+		
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> menu caricamenti:
+		creare menu caricamenti leggendo il file salvataggi.txt
 
-stama del nemico
-
-punto partenza proiettile= posizione nemico = posizione tronco sincronia, come?
+---------------------------------------------------------------------------------------------------------------------------------------------------
+-> menu salvataggio:
+		viene richiesto il nome della partita, va fatto un controllo se il nome esiste gia richiedere

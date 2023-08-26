@@ -209,6 +209,16 @@ void drawProcess(int* pipe_fd) {
       	break;
       	case 'Z':
       		beep();
+      		// funzione che mette in pausa
+      		// funzione che visualizza menu
+      		// exit del menu -> intero con scelta
+      		// gli vanno passati tutti i pid che deve mettere in pausa
+      		int scelta = pausa(pidRana);
+      		// se preme continua allora stampare tutta la matrice dinamica
+      		// se preme esci termire tutti i processi
+      		
+      		
+      		// switch su scelta
       		break;
       default:
         break;
@@ -217,7 +227,7 @@ void drawProcess(int* pipe_fd) {
     //-------------------------collisioni rana------
 		bool frogCollision = false;
 		bool autoCollision = false;
-		bool enemyBulletCollision = false;
+		int  enemyBulletCollision = -1;
 		bool taneAperteCollision = false;
 		bool taneChiuseCollision = false;
 		bool autoProiettiliNemiciCollision = false;
@@ -248,12 +258,24 @@ void drawProcess(int* pipe_fd) {
 	 	
 	 	if(autoProiettiliNemiciCollision){ beep();}
 	 	
-		if((frogCollision && autoCollision) || (enemyBulletCollision) )
+		if((frogCollision && autoCollision) )
 		{ 
 			beep();
-			kill(pidRana, SIGKILL);
-			waitpid(pidRana, NULL,0);
-			pidRana = avviaRana(pipe_fd);
+			pidRana = resetRana(pipe_fd, pidRana); 
+		}
+		
+		
+		if(enemyBulletCollision != -1){
+			beep();
+			pidRana = resetRana(pipe_fd, pidRana); 
+			// da mettere dentro funzione apposita 
+			kill(array_pid_proiettili_nemici[enemyBulletCollision], SIGKILL);
+  		waitpid(array_pid_proiettili_nemici[enemyBulletCollision],NULL,0);
+  		array_pid_proiettili_nemici[enemyBulletCollision]=0;
+  		contatore_proiettili_nemici_in_gioco--;
+  		pulisciSpriteInMatrice(old_pos_proiettili_nemici[enemyBulletCollision].y, old_pos_proiettili_nemici[enemyBulletCollision].x, &proiettileNemicoSprite, screenMatrix, staticScreenMatrix);
+  		old_pos_proiettili_nemici[enemyBulletCollision].type = ' ';
+  		/**/
 		}	
     
 		stampaMatrice(screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
