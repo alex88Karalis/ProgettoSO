@@ -18,6 +18,11 @@ void drawProcess(int* pipe_fd) {
 	pid_t pidRana;
 	pidRana = avviaRana(pipe_fd); // avvia il processo che gestisce il movimento della rana
 	
+	pid_t pid_veicoli[8];
+	gestoreMacchine(pipe_fd,pid_veicoli); // avvia le auto e i camion
+	
+	pid_t pid_tronchi[3];
+	gestoreTronchi(pipe_fd,pid_tronchi); // avvia i tronchi
 	
 		
 	PipeData pipeData; // struttura per leggere la pipe
@@ -95,6 +100,8 @@ void drawProcess(int* pipe_fd) {
   while (1) {
   	read(pipe_fd[0], &pipeData, sizeof(PipeData)); // Leggi le coordinate inviate dalla pipe
     // test zona
+    mvprintw(37,2,"                                                       ");
+    mvprintw(37,2,"pid rana: %d",pidRana);
     mvprintw(36,2,"                                                                                                                           ");
     mvprintw(36,2,"pid proiettili: ");
     for(int i=0;i<MAXNPROIETTILI;i++){
@@ -110,6 +117,18 @@ void drawProcess(int* pipe_fd) {
     for(int i=0;i<MAXNNEMICI;i++){
     	mvprintw(34,15+(i*11),"pid%d: %d",i,array_pid_nemici[i]);
     }
+    mvprintw(33,2,"                                                                                                                           ");
+    mvprintw(33,2,"pid veicoli: ");
+    for(int i=0;i<8;i++){
+    	mvprintw(33,15+(i*11),"pid%d: %d",i,pid_veicoli[i]);
+    }
+    
+    mvprintw(38,2,"                                                                                                                           ");
+    mvprintw(38,2,"pid tronchi: ");
+    for(int i=0;i<3;i++){
+    	mvprintw(38,15+(i*11),"pid%d: %d",i,pid_tronchi[i]);
+    }
+    
     mvprintw(37,110,"                        ");
     mvprintw(37,110,"proiettili in gioco: %d",contatore_proiettili_in_gioco);
     mvprintw(38,110,"                               ");
@@ -214,6 +233,7 @@ void drawProcess(int* pipe_fd) {
       		// exit del menu -> intero con scelta
       		// gli vanno passati tutti i pid che deve mettere in pausa
       		int scelta = pausa(pidRana);
+      		stampaRefreshMatrice(screenMatrix);
       		// se preme continua allora stampare tutta la matrice dinamica
       		// se preme esci termire tutti i processi
       		
@@ -225,28 +245,42 @@ void drawProcess(int* pipe_fd) {
     }//end switch-case su type
     
     //-------------------------collisioni rana------
-		bool frogCollision = false;
+		bool troncoCollision = false;
 		bool autoCollision = false;
 		int  enemyBulletCollision = -1;
-		bool taneAperteCollision = false;
-		bool taneChiuseCollision = false;
+		bool tanaApertaCollision = false;
+		bool tanaChiusaCollision = false;
 		bool autoProiettiliNemiciCollision = false;
+		bool autoProiettileCollision = false;
 		
-		//TanaStatus t_stat = OPEN;
 		
-		frogCollision = collisioneRana(old_pos, spriteOggetto);
-		autoCollision = collisioneAuto(old_pos, spriteOggetto);
+		
+		troncoCollision = checkRanaTronco(old_pos, spriteOggetto); //collisione Rana-Tronco
+		autoCollision = checkRanaVeicolo(old_pos, spriteOggetto); //collisione Auto - Rana
+		
+		//collisione Rana-ProiettileNemico
 		enemyBulletCollision= collisioneProiettiliNemici(old_pos, old_pos_proiettili_nemici, spriteOggetto);
-		autoProiettiliNemiciCollision = collisioneAutoProiettili(old_pos, old_pos_proiettili_nemici, spriteOggetto);
+		
+		//collisione Auto-Proiettili
+		autoProiettiliNemiciCollision = checkAutoProiettile(old_pos, old_pos_proiettili_nemici, spriteOggetto, PROIETTILE_NEMICO_SPRITE);
 		;
+		
+		//collisione Auto-ProiettileRana TIP: aspettare che compaiano tutti veicoli prima di sparare 
+		if(contatore_proiettili_in_gioco > 0){
+			autoProiettileCollision = checkAutoProiettile(old_pos, old_pos_proiettili, spriteOggetto, PROIETTILE_SPRITE);
+			if(autoProiettileCollision){ 
+				beep(); 
+			}
+		}
 		//if(autoProiettiliNemiciCollision){ beep();}
 		
-		taneChiuseCollision = collisioneTaneChiuse(old_pos, tane, spriteOggetto, taneSprite);
-		taneAperteCollision = collisioneTaneAperte(old_pos, tane, spriteOggetto, taneSprite);
+		tanaChiusaCollision = checkRanaTanaChiusa(old_pos, tane, spriteOggetto, taneSprite);
+		tanaApertaCollision = checkRanaTanaAperta(old_pos, tane, spriteOggetto, taneSprite);
 		
-		if(taneChiuseCollision) { beep(); }
 		
-		if(taneAperteCollision){
+		if(tanaChiusaCollision) { beep(); }
+		
+		if(tanaApertaCollision){
 				beep(); 
 		 		for(int i=0; i<5; i++){
 			 		if(tane[i].status == CLOSED){
@@ -258,16 +292,22 @@ void drawProcess(int* pipe_fd) {
 	 	
 	 	if(autoProiettiliNemiciCollision){ beep();}
 	 	
-		if((frogCollision && autoCollision) )
+	 	
+	 	
+	 	
+	 	
+		//if((frogCollision && autoCollision) )
+		if( autoCollision )
 		{ 
 			beep();
 			pidRana = resetRana(pipe_fd, pidRana); 
 		}
+		if (troncoCollision){ beep();}
 		
 		
 		if(enemyBulletCollision != -1){
-			beep();
-			pidRana = resetRana(pipe_fd, pidRana); 
+			//beep();
+			
 			// da mettere dentro funzione apposita 
 			kill(array_pid_proiettili_nemici[enemyBulletCollision], SIGKILL);
   		waitpid(array_pid_proiettili_nemici[enemyBulletCollision],NULL,0);
@@ -275,12 +315,23 @@ void drawProcess(int* pipe_fd) {
   		contatore_proiettili_nemici_in_gioco--;
   		pulisciSpriteInMatrice(old_pos_proiettili_nemici[enemyBulletCollision].y, old_pos_proiettili_nemici[enemyBulletCollision].x, &proiettileNemicoSprite, screenMatrix, staticScreenMatrix);
   		old_pos_proiettili_nemici[enemyBulletCollision].type = ' ';
+  		pidRana = resetRana(pipe_fd, pidRana); 
   		/**/
 		}	
     
 		stampaMatrice(screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
     refresh(); // Aggiorna la finestra
 	}//end while
+	//wait(NULL);
+	//wait(NULL); //aspetta fine di macchina1
+	//wait(NULL); //aspetta fine di macchina2
+	//wait(NULL); //aspetta fine di macchina3
+	//wait(NULL); //aspetta fine di macchina4
+	
+	//wait(NULL); //aspetta fine di macchina1
+	//wait(NULL); //aspetta fine di macchina2
+	//wait(NULL); //aspetta fine di macchina3
+	//wait(NULL); //aspetta fine di macchina4
   return;  
 }//end drawProcess
 //--------------------------------------------FINE PROCESSO DISEGNA----------------------------------
@@ -305,6 +356,21 @@ void stampaMatrice( ScreenCell (*screenMatrix)[WIDTH]){
 				attroff(COLOR_PAIR(screenMatrix[i][j].color));
 				screenMatrix[i][j].is_changed = false; // una volta stampato, il flag viene resettato per la prossima modifica
 			}
+		}
+	}
+	return;
+}
+void stampaRefreshMatrice( ScreenCell (*screenMatrix)[WIDTH]){
+	for(int i=0;i<HEIGHT;i++){
+		for(int j=0;j<WIDTH;j++){
+			// stampa a schermo il carattere della matrice dinamica solo se il flag del carattere è TRUE
+			// il flag sara TRUE solo se il carattere è stato modificato
+							
+			attron(COLOR_PAIR(screenMatrix[i][j].color));
+			mvaddch(i, j, screenMatrix[i][j].ch);
+			attroff(COLOR_PAIR(screenMatrix[i][j].color));
+			screenMatrix[i][j].is_changed = false; // una volta stampato, il flag viene resettato per la prossima modifica
+			
 		}
 	}
 	return;
