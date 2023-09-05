@@ -15,8 +15,12 @@ void avviaDrawProcess(int pipe_fd[2]) {
 
 // processo che si occupa di disegnare lo schermo
 void drawProcess(int* pipe_fd) {
+	int arrayDirTronchi[4]; // vettore per registrare la direzione di chiascun tronco
+	int pipeRana_fd [2];
+	creaPipe(pipeRana_fd);
+	
 	pid_t pidRana;
-	pidRana = avviaRana(pipe_fd); // avvia il processo che gestisce il movimento della rana
+	pidRana = avviaRana(pipe_fd, pipeRana_fd); // avvia il processo che gestisce il movimento della rana
 	
 	pid_t pid_veicoli[8];
 	gestoreMacchine(pipe_fd,pid_veicoli); // avvia le auto e i camion
@@ -24,7 +28,6 @@ void drawProcess(int* pipe_fd) {
 	pid_t pid_tronchi[3];
 	gestoreTronchi(pipe_fd,pid_tronchi); // avvia i tronchi
 	
-		
 	PipeData pipeData; // struttura per leggere la pipe
 	
 	PipeData old_pos [OLDPOSDIM]; // array di strutture che contiene dati oggetti al passo precedente; rana, tronchi x3, auto x4, ...
@@ -97,6 +100,9 @@ void drawProcess(int* pipe_fd) {
 	inizializzaMatriceSchermo(screenMatrix, staticScreenMatrix); // inizializza entrambe le matrici
 	
 	
+	PipeData rana_mod; //var di supporto
+	bool troncoCollision = false;
+	
   while (1) {
   	read(pipe_fd[0], &pipeData, sizeof(PipeData)); // Leggi le coordinate inviate dalla pipe
     // test zona
@@ -136,14 +142,52 @@ void drawProcess(int* pipe_fd) {
     mvprintw(39,110,"                                  ");
     mvprintw(39,110,"proiettili nemici in gioco: %d",contatore_proiettili_nemici_in_gioco);
     // fine test zona
+    
+    
+    
+		
+		int troncoID= -1;
+		
+		/*
+				rana_mod = old_pos[0];
+				rana_new.x = old_pos[0].x + pipeData.x; // se Rana invia solo 1 e -1 come coordinate
+    		rana_new.y = old_pos[0].y + pipeData.y;
+    		aggiornaPosizioneOggetto(&rana_new, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+		if (troncoCollision)
+		{
+					troncoID = collisioneRanaTronco(old_pos, spriteOggetto); 
+										// offset Rana su Tronco					+	pos_x del tronco
+    			rana_mod.x = (pipeData.x - old_pos[troncoID].x) + old_pos[troncoID].x ;
+    			aggiornaPosizioneOggetto(&rana_mod, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+			if(troncoID == 1){
+				beep();
+			}
+			// NOTA: per ora non mostra nessuno spostamento
+		}
+    /**/
+    int offsetX_rana = 0;
+    PipeData tronco_tmp;
+    PipeData rana_new;
+    PipeData rana_old;
+    
     switch(pipeData.type){
     	case 'X':
-    		aggiornaPosizioneOggetto(&pipeData, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+    		if(troncoCollision)
+    		{
+    			
+    		}else{
+    			aggiornaPosizioneOggetto(&pipeData, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+    			//aggiornaPosizioneOggetto(&rana_new, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+    		}
     		mvprintw(0,110,"                                    ");
-    		mvprintw(0,110,"RANA tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+    		//mvprintw(0,110,"RANA tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+    		mvprintw(0,110,"RANA tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type, old_pos[0].x,old_pos[0].y, pipeData.id);
         break;
 			case 'T':
         aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix,staticScreenMatrix, &troncoSprite);
+        
+        aggiornaDirezioneTronchi( &pipeData, &old_pos[pipeData.id], arrayDirTronchi);
+        
         mvprintw(pipeData.id,110,"                                    ");
     		mvprintw(pipeData.id,110,"TRONCO tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
         break;
@@ -245,41 +289,41 @@ void drawProcess(int* pipe_fd) {
     }//end switch-case su type
     
     //-------------------------collisioni rana------
-		bool troncoCollision = false;
+		
 		bool autoCollision = false;
-		int  enemyBulletCollision = -1;
 		bool tanaApertaCollision = false;
 		bool tanaChiusaCollision = false;
 		bool autoProiettiliNemiciCollision = false;
 		bool autoProiettileCollision = false;
+		bool fiumeCollision = false;
 		
 		
+		int  enemyBulletCollision = -1; // indice del proiettileNemico che colpisce la Rana
 		
+		
+		fiumeCollision = checkRanaFiume(old_pos, spriteOggetto); // restituisce TRUE se la Rana cade nel fiume
 		troncoCollision = checkRanaTronco(old_pos, spriteOggetto); //collisione Rana-Tronco
 		autoCollision = checkRanaVeicolo(old_pos, spriteOggetto); //collisione Auto - Rana
 		
-		//collisione Rana-ProiettileNemico
+		//collisione Rana-ProiettileNemico, ritorna id proiettile (0,1,2) o -1 se non c'è collisone
 		enemyBulletCollision= collisioneProiettiliNemici(old_pos, old_pos_proiettili_nemici, spriteOggetto);
 		
 		//collisione Auto-Proiettili
 		autoProiettiliNemiciCollision = checkAutoProiettile(old_pos, old_pos_proiettili_nemici, spriteOggetto, PROIETTILE_NEMICO_SPRITE);
 		;
-		
 		//collisione Auto-ProiettileRana TIP: aspettare che compaiano tutti veicoli prima di sparare 
 		if(contatore_proiettili_in_gioco > 0){
 			autoProiettileCollision = checkAutoProiettile(old_pos, old_pos_proiettili, spriteOggetto, PROIETTILE_SPRITE);
-			if(autoProiettileCollision){ 
-				beep(); 
-			}
 		}
 		//if(autoProiettiliNemiciCollision){ beep();}
-		
 		tanaChiusaCollision = checkRanaTanaChiusa(old_pos, tane, spriteOggetto, taneSprite);
 		tanaApertaCollision = checkRanaTanaAperta(old_pos, tane, spriteOggetto, taneSprite);
 		
 		
-		if(tanaChiusaCollision) { beep(); }
 		
+		if(fiumeCollision) beep();
+		
+		if(tanaChiusaCollision) { beep(); }
 		if(tanaApertaCollision){
 				beep(); 
 		 		for(int i=0; i<5; i++){
@@ -291,23 +335,20 @@ void drawProcess(int* pipe_fd) {
 	 	}
 	 	
 	 	if(autoProiettiliNemiciCollision){ beep();}
+	 	if(autoProiettileCollision){ 
+			beep(); 
+		}
 	 	
-	 	
-	 	
-	 	
-	 	
-		//if((frogCollision && autoCollision) )
 		if( autoCollision )
 		{ 
 			beep();
-			pidRana = resetRana(pipe_fd, pidRana); 
+			pidRana = resetRana(pipe_fd, pipeRana_fd, pidRana); 
 		}
-		if (troncoCollision){ beep();}
 		
+		//close(pipeRana_fd[0]);
 		
 		if(enemyBulletCollision != -1){
 			//beep();
-			
 			// da mettere dentro funzione apposita 
 			kill(array_pid_proiettili_nemici[enemyBulletCollision], SIGKILL);
   		waitpid(array_pid_proiettili_nemici[enemyBulletCollision],NULL,0);
@@ -315,9 +356,35 @@ void drawProcess(int* pipe_fd) {
   		contatore_proiettili_nemici_in_gioco--;
   		pulisciSpriteInMatrice(old_pos_proiettili_nemici[enemyBulletCollision].y, old_pos_proiettili_nemici[enemyBulletCollision].x, &proiettileNemicoSprite, screenMatrix, staticScreenMatrix);
   		old_pos_proiettili_nemici[enemyBulletCollision].type = ' ';
-  		pidRana = resetRana(pipe_fd, pidRana); 
+  		pidRana = resetRana(pipe_fd, pipeRana_fd, pidRana); 
   		/**/
 		}	
+    
+    //--------------------------------------------------
+    //PipeData tronco_tmp;
+    /*
+    if (troncoCollision)
+		{
+					troncoID = collisioneRanaTronco(old_pos, spriteOggetto); 
+					tronco_tmp = old_pos[troncoID];
+					//rana_mod = old_pos[0];
+					//int offsetX_rana = (rana_mod.x - tronco_tmp.x) ;
+					rana_mod.x = offsetX_rana+tronco_tmp.x;
+					
+										// offset Rana su Tronco					+	pos_x del tronco
+    			//rana_mod.x = (pipeData.x - old_pos[troncoID].x) + old_pos[troncoID].x ;
+    			aggiornaPosizioneOggetto(&rana_mod, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
+			if(troncoID == 1){
+				beep();
+			}
+			// NOTA: per ora non mostra nessuno spostamento
+		}
+    /**/
+    
+    
+    
+    
+    //write(pipeRana_fd[1], &rana_mod, sizeof(PipeData));
     
 		stampaMatrice(screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
     refresh(); // Aggiorna la finestra
@@ -336,7 +403,6 @@ void drawProcess(int* pipe_fd) {
 }//end drawProcess
 //--------------------------------------------FINE PROCESSO DISEGNA----------------------------------
 
-
 //-----------------------------------------------------------
 int id_disponibile(pid_t *array_pid, int lunghezza){
 	for(int i=0;i<lunghezza;i++){
@@ -344,6 +410,19 @@ int id_disponibile(pid_t *array_pid, int lunghezza){
 	}
 	return -1;
 }
+//----------------------------------
+
+void aggiornaDirezioneTronchi(PipeData *pipeData, PipeData *old_pos, int *arr_dir_tronchi ){
+		int tronco_id = pipeData->id;													//individua che tronco hai letto
+		arr_dir_tronchi[tronco_id] = pipeData->x - old_pos->x	;//controlla la direzione in base alla posizione precedente
+}
+
+
+
+
+
+
+
 //--------------------------------------------Stampa Puntuale----------------------------------------------------------------------
 void stampaMatrice( ScreenCell (*screenMatrix)[WIDTH]){
 	for(int i=0;i<HEIGHT;i++){
