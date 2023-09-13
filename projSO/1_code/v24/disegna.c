@@ -1,4 +1,7 @@
 #include "disegna.h"
+
+//#define DEBUG 
+
 // per far partire il processo che si occupa di disegnare
 void avviaDrawProcess(int pipe_fd[2]) {
     pid_t draw_pid = fork();
@@ -108,6 +111,8 @@ void drawProcess(int* pipe_fd) {
 	
   while (1) {
   	read(pipe_fd[0], &pipeData, sizeof(PipeData)); // Leggi le coordinate inviate dalla pipe
+    
+  #ifdef DEBUG 
     // test zona
     mvprintw(37,2,"                                                       ");
     mvprintw(37,2,"pid rana: %d",pidRana);
@@ -145,7 +150,7 @@ void drawProcess(int* pipe_fd) {
     mvprintw(39,110,"                                  ");
     mvprintw(39,110,"proiettili nemici in gioco: %d",contatore_proiettili_nemici_in_gioco);
     // fine test zona
-    
+  #endif
     
     
 		
@@ -185,28 +190,35 @@ void drawProcess(int* pipe_fd) {
     			aggiornaPosizioneOggetto(&pipeData, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
     			//aggiornaPosizioneOggetto(&rana_new, &old_pos[0], screenMatrix, staticScreenMatrix, &ranaSprite);
     		}
+    		#ifdef DEBUG
     		mvprintw(0,110,"                                    ");
     		//mvprintw(0,110,"RANA tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
     		mvprintw(0,110,"RANA tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type, old_pos[0].x,old_pos[0].y, pipeData.id);
+        #endif
         break;
 			case 'T':
         aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix,staticScreenMatrix, &troncoSprite);
         
         aggiornaDirezioneTronchi( &pipeData, &old_pos[pipeData.id], arrayDirTronchi);
-        
+        #ifdef DEBUG
         mvprintw(pipeData.id,110,"                                    ");
     		mvprintw(pipeData.id,110,"TRONCO tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+        #endif
         break;
       case 'A':
       	aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix, staticScreenMatrix, &autoSprite);
+      	#ifdef DEBUG
       	mvprintw(pipeData.id,110,"                                    ");
     		mvprintw(pipeData.id,110,"AUTO tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+        #endif
         break;
         
      case 'C':  // legge il camion da pipe e aggiorna posizione
       	aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix, staticScreenMatrix, &camionSprite);
+    	  #ifdef DEBUG
       	mvprintw(pipeData.id,110,"                                    ");
     		mvprintw(pipeData.id,110,"CAMION tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+        #endif
         break;
       case 'c':
       	// NON disegnare il camion per un certo tempo, quando esce dallo schermo
@@ -248,8 +260,10 @@ void drawProcess(int* pipe_fd) {
       case 'P':
       	// nuove coordinate proiettile
       	// se il proiettile ha sforato devo uccidere il processo e decrementare il contatore
+      	#ifdef DEBUG
       	mvprintw(13+pipeData.id,110,"                                       ");
     		mvprintw(13+pipeData.id,110,"PROIETTILE tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
+    		#endif
       	if(pipeData.y<0){
       		mvprintw(13+pipeData.id,110,"                                    ");
     			mvprintw(13+pipeData.id,110,"id: %d uccisione proiettile con pid: %d",pipeData.id,array_pid_proiettili[pipeData.id]);
@@ -428,8 +442,10 @@ void drawProcess(int* pipe_fd) {
 	 	
 		if( autoCollision )
 		{ 
-			beep();
+			//cancellaOggetto(old_pos, &ranaSprite, screenMatrix, staticScreenMatrix, 0);
 			pidRana = resetRana(pipe_fd, pipeRana_fd, pidRana); 
+			//stampaMatrice(staticScreenMatrix);
+			//beep();
 		}
 		
 		//close(pipeRana_fd[0]);
