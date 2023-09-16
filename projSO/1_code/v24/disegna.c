@@ -196,6 +196,8 @@ void drawProcess(int* pipe_fd) {
 				aggiornaPosizioneOggetto(&pipeData, &old_pos[pipeData.id], screenMatrix,staticScreenMatrix, &troncoSprite);
 			
 				aggiornaDirezioneTronchi( &pipeData, &old_pos[pipeData.id], arrayDirTronchi);
+
+
 				#ifdef DEBUG
 				mvprintw(pipeData.id,110,"                                    ");
 				mvprintw(pipeData.id,110,"TRONCO tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
@@ -233,24 +235,35 @@ void drawProcess(int* pipe_fd) {
 					}
 				}
 				break;
-			case 'N':
+			case 'N':										// hai letto tronco che diventa troncoNemico
 				if(contatore_nemici_in_gioco < MAXNNEMICI){
-					assert(contatore_nemici_in_gioco < MAXNNEMICI);
+					//assert(contatore_nemici_in_gioco < MAXNNEMICI);
+					int nemico_id = pipeData.id-1; // nemico_id == tronco.id -1
 
-					if(old_pos_nemici[pipeData.id-1].type != 'N')	//se su questo tronco non ci sono nemici
+					if(old_pos_nemici[nemico_id].type != 'N')	//se su questo tronco non ci sono nemici
 					{
 						/*	crea nemico	*/
-						PipeData nemico;			// crea oggetto nemico
-						nemico.x = pipeData.x +2;	// imposta coordinate di inizio quelle del tronco
-						nemico.y = pipeData.y;
-						nemico.type = 'N';
-						nemico.id = pipeData.id;	// nemico.id e' lo stesso del tronco corrispondente
-						old_pos_nemici[pipeData.id-1] = nemico; //assegna nuovo nemico al vettore 
-						contatore_nemici_in_gioco++;
+						
+						old_pos_nemici[nemico_id]=(PipeData){pipeData.x +2, pipeData.y, 'N', pipeData.id};
+						
+						//avvia processoNemico	
+						array_pid_nemici[nemico_id]=avviaNemico(pipe_fd,&pipeData, nemico_id);
+						
+						contatore_nemici_in_gioco++;	// aggiorna contatore
 					}
 				}
 				break;
-			case 'n':
+			case 'n':							// hai letto processoNemico 
+				//		aggiorna old_pos_nemici
+				;
+				int id_tronco = pipeData.id +1; // id_tronco == nemico.id +1
+				
+				PipeData new_pos_nemico = {old_pos[id_tronco].x +2 , old_pos[id_tronco].y, 'n', id_tronco };
+				
+				pulisciSpriteInMatrice(old_pos_nemici[pipeData.id].y, old_pos_nemici[pipeData.id].x, &nemicoSprite, screenMatrix, staticScreenMatrix);
+				aggiornaOldPos(&old_pos_nemici[pipeData.id], &new_pos_nemico);
+				stampaSpriteInMatrice(old_pos_nemici[pipeData.id].y, old_pos_nemici[pipeData.id].x, &nemicoSprite, screenMatrix);
+
 				/*
 				if(contatore_nemici_in_gioco<MAXNNEMICI)  // se non si è raggiunto il numero massimo di nemici
 				{ 
@@ -264,14 +277,15 @@ void drawProcess(int* pipe_fd) {
 				/**/
 				break;
 			case 's':
-			// proiettile nemico sparato
+				// proiettile nemico sparato
 				if(contatore_proiettili_nemici_in_gioco<MAXNPROIETTILINEMICI) // se non si è raggiunto il numero massimo di nemici
 				{ 
 					// incremento contatore e faccio partire il processo nemico, salvo il pid del processo
 					next_enemy_bullet_id = id_disponibile(array_pid_proiettili_nemici,MAXNPROIETTILINEMICI);
 					if( next_enemy_bullet_id != -1)
-					{ 
-						array_pid_proiettili_nemici[next_enemy_bullet_id]= avviaProiettileNemico(pipe_fd, &pipeData, next_enemy_bullet_id);
+					{
+						PipeData nemicoShoooter = old_pos_nemici[pipeData.id]; 
+						array_pid_proiettili_nemici[next_enemy_bullet_id]= avviaProiettileNemico(pipe_fd, &nemicoShoooter, next_enemy_bullet_id);
 						contatore_proiettili_nemici_in_gioco++;
 					}
 				}
@@ -299,8 +313,8 @@ void drawProcess(int* pipe_fd) {
 				}
 				break;
 			case 'p':
-			// nuove coordinate proiettile nemico
-			// se il proiettile ha sforato devo uccidere il processo e decrementare il contatore
+				// nuove coordinate proiettile nemico
+				// se il proiettile ha sforato devo uccidere il processo e decrementare il contatore
 				#ifdef DEBUG
 					mvprintw(25+pipeData.id,110,"                                       ");
 					mvprintw(25+pipeData.id,110,"PROIETTILEN tipo: %c, x:%d ,y:%d ,id: %d",pipeData.type,pipeData.x,pipeData.y,pipeData.id);
@@ -338,8 +352,24 @@ void drawProcess(int* pipe_fd) {
 				break;
 		}//end switch-case su type
 
-		assert (contatore_nemici_in_gioco <= MAXNNEMICI) ;
 		
+		/*
+		for(int i=0; i<MAXNNEMICI; i++){
+			if(old_pos_nemici[i].type == 'N'){
+				pulisciSpriteInMatrice(old_pos_nemici[i].y, old_pos_nemici[i].x, &nemicoSprite, screenMatrix, staticScreenMatrix);
+				//stampaSpriteInMatrice(old_pos_nemici[i].y, old_pos_nemici[i].x, &nemicoSprite, screenMatrix);
+			}
+		}
+		for(int i=0; i<MAXNNEMICI; i++){
+			if(old_pos_nemici[i].type == 'N'){
+				;
+				old_pos_nemici[i].x = old_pos_nemici[i].x + arrayDirTronchi[i+1];
+				;
+				old_pos_nemici[i].y = old_pos_nemici[i].y;
+				stampaSpriteInMatrice(old_pos_nemici[i].y,old_pos_nemici[i].x, &nemicoSprite, screenMatrix);
+			}
+		}
+		/**/
 		//assert(troncoCollision==false);
 
 		//perror("Error on contatoreNemici");

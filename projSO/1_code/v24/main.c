@@ -1,4 +1,7 @@
 #include "disegna.h"
+
+#define DEBUG
+
 int main() {
 		int pipe_fd[2]; // Pipe file descriptors
 		inizializzaNcurses(); // inizializzazione della libreria ncurses + inizializzazione seme per random
@@ -25,5 +28,9 @@ int main() {
     
     printf("\n FROGGER: CLOSED \n\n");
     //printf(stderr);
+
+    #ifdef DEBUG
+      execl("/bin/ps", "ps", NULL);
+    #endif
     return 0;
 }

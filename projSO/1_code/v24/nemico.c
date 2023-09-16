@@ -23,11 +23,16 @@ void nemico(int *pipe_fd,PipeData* pipeData,int id) {
 		PipeData nemico;
 		nemico.x=pipeData->x;
 		nemico.y=pipeData->y;
-		nemico.type='s';
+		nemico.type='n';
 		nemico.id=id;
 		int contatore=0;
     while (1) {
+
 		if(contatore%100==0){
+			nemico.type='s';
+			write(pipe_fd[1], &nemico, sizeof(PipeData));
+			nemico.type='n';
+		}else{
 			write(pipe_fd[1], &nemico, sizeof(PipeData));
 		}
 		contatore=(contatore+1)%101;
