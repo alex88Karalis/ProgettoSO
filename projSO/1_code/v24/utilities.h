@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <signal.h>
+#include <assert.h>
 
 #define WIDTH 104
 #define HEIGHT 37
@@ -30,6 +31,10 @@
 #define MAXNPROIETTILI 3
 #define MAXNNEMICI 3
 #define MAXNPROIETTILINEMICI MAXNPROIETTILI
+// macro delle info di gioco
+#define MAX_TIME 60
+#define MAX_LIFE 4
+#define START_LEVEL 1
 
 typedef enum 
 {
