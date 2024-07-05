@@ -104,13 +104,15 @@ void* proiettileNemicoThread(void* param){
 			break;
 		}else{
 			proiettileNemico.y++;
+			//if(proiettileNemico.y >= MARCIAPIEDEROWEND){ break;}
+			// if(proiettileY è troppo avanti) esci
 			scriviSuBuffer(p, proiettileNemico, proiettileNemicoTCB, false);
 			usleep(100000);
 		}
-		if(proiettileNemico.y +1 >= HUDINFROWSTART){ break;}
 	}
 
 	// Ultima scrittura prima di uscire
+	// y = MARCIAPIEDEROWEND
 	scriviSuBuffer(p, proiettileNemico, proiettileNemicoTCB, true);
 
 	pthread_exit(NULL);

@@ -93,12 +93,29 @@ void *drawThread (void *param){
 	// prima stampa dello schermo
 	printRana(&(gameData->oldPos.rana),&(gameData->sprites[S_RANA]),gameData);
 	
+	sem_wait(&p->semafori->window_mutex);
 	stampaRefreshMatrice(gameData->schermo.screenMatrix);
-	
+	sem_post(&p->semafori->window_mutex);
+
+	int countdown_piante = 0;
 	// loop principale di gioco
 	while (!isGameOver(gameData)) {
 
 		leggiDaBuffer( &(arg_general), &(gameData->pipeData) );
+
+		if(gameData->pipeData.type=='P' && isThreadTerminated(&gameData->allTCB->tcb_proiettili[gameData->pipeData.id],&(p->semafori->tcb_mutex) )) {
+			mvprintw(23,156,"                          ");
+			mvprintw(24,156,"                          ");
+			mvprintw(25,156,"                          ");
+			mvprintw(26,156,"                          ");
+			mvprintw(27,156,"                          ");
+			
+			mvprintw(23,156,"last pipeData a terminated");
+			mvprintw(24,156,"x: %d",gameData->pipeData.x);
+			mvprintw(25,156,"y: %d",gameData->pipeData.y);
+			mvprintw(26,156,"tipo: %c",gameData->pipeData.type);
+			mvprintw(27,156,"id: %d",gameData->pipeData.id);
+		}
 		
 		
 		#ifdef DEBUG
@@ -125,11 +142,11 @@ void *drawThread (void *param){
 
 		mvprintw(20,106,"TCB PROIETTILI PRE UPDATE per indice");
 		mvprintw(21,106,"                                          ");
-		mvprintw(21,106,"0: %ld",gameData->allTCB->tcb_proiettili[0].thread_id);
+		mvprintw(21,106,"0: %ld %d %d",gameData->allTCB->tcb_proiettili[0].thread_id,gameData->allTCB->tcb_proiettili[0].is_target,gameData->allTCB->tcb_proiettili[0].is_terminated);
 		mvprintw(22,106,"                                          ");
-		mvprintw(22,106,"1: %ld",gameData->allTCB->tcb_proiettili[1].thread_id);
+		mvprintw(22,106,"1: %ld %d %d",gameData->allTCB->tcb_proiettili[1].thread_id,gameData->allTCB->tcb_proiettili[1].is_target,gameData->allTCB->tcb_proiettili[1].is_terminated);
 		mvprintw(23,106,"                                          ");
-		mvprintw(23,106,"2: %ld",gameData->allTCB->tcb_proiettili[2].thread_id);
+		mvprintw(23,106,"2: %ld %d %d",gameData->allTCB->tcb_proiettili[2].thread_id,gameData->allTCB->tcb_proiettili[2].is_target,gameData->allTCB->tcb_proiettili[2].is_terminated);
 
 		mvprintw(14,106,"                                ");
 		mvprintw(14,106,"CONT PROIETTILI PRE UPDATE: %d",gameData->contatori.contProiettili);
@@ -142,32 +159,50 @@ void *drawThread (void *param){
 		aggiorna(&(arg_general), gameData); // aggiorna stato del gioco e gestisce collisioni
 		printTempo(gameData); // aggiorna hud del tempo
 		
-		int n = pulisciThreadMorti(arg_general.semafori, gameData->allTCB);  //per ora solo per la Rana e proiettili
-
-		if(gameData->allTCB->tcb_rana->is_terminated && (n != 0)){ perror("RANA Zombie");} // per DEBUG
-
+		//int n = pulisciThreadMorti(arg_general.semafori, gameData->allTCB);  //per ora solo per (la Rana e) proiettili
 		
+		
+		int n_1 = pulisciThreadMorti_2(gameData, arg_general.semafori); //  in prova
+		if(n_1 == 0 && gameData->gameInfo.vite > 0){
+			//cancellaOggettoDaMatrice(gameData,&(gameData->oldPos.rana), &gameData->oldPos.rana, S_RANA);
+			resetRanaThread(&arg_general);
+			aggiornaHud(gameData);
+		}else{
+			aggiornaHud(gameData);
+		}
+		/**/
+		
+		//if(n_1 == 1){		aggiornaHud(gameData);}
+
+		/*
 		if(n == 0  && gameData->gameInfo.vite > 0){		// la rana è morta ma ha ancora vite	
 			// reset RANA 
-			resetRanaThread(&arg_general);
+			//resetRanaThread(&arg_general);
 			//printRana(&(gameData->oldPos.rana),&(gameData->sprites[S_RANA]),gameData);
-			aggiornaHud(gameData);
+			//aggiornaHud(gameData);
 		}else if (n == 1){ //join su proiettile
+			gameData->pids.pidProiettili[gameData->pipeData.id] = 0;
 			aggiornaHud(gameData);
 			//beep();
 		}else{			// nessun thread è terminato
 		}
+		/**/
 
 		//--------------AVVIO NEMICI / PIANTE ------------------
-		if(gameData->contatori.contNemici < MAXNNEMICI){
+		// TODO - aggiustare cancellazione piante 
+
+		if(gameData->contatori.contNemici < MAXNNEMICI && countdown_piante==0 ){
 			//int nemicoID = 2;
 			int nemicoID = id_disponibile(p->gameData->pids.pidNemici,MAXNNEMICI);
 			if(nemicoID >= 0){
 				pthread_t nemico = avviaNemicoThread(&arg_general, nemicoID);
 				gameData->pids.pidNemici[nemicoID] = nemico;
-				gameData->contatori.contNemici++;
+				//gameData->contatori.contNemici++;
+				gameData->contatori.contNemici = (gameData->contatori.contNemici +1) % (MAXNNEMICI+1);
+
 			}
 		}
+		countdown_piante = (countdown_piante+1) %100;
 
 
 
@@ -191,11 +226,11 @@ void *drawThread (void *param){
 
 		mvprintw(25,106,"TCB PROIETTILI POST UPDATE per indice");
 		mvprintw(26,106,"                                          ");
-		mvprintw(26,106,"0: %ld",gameData->allTCB->tcb_proiettili[0].thread_id);
+		mvprintw(26,106,"0: %ld %d %d",gameData->allTCB->tcb_proiettili[0].thread_id,gameData->allTCB->tcb_proiettili[0].is_target,gameData->allTCB->tcb_proiettili[0].is_terminated);
 		mvprintw(27,106,"                                          ");
-		mvprintw(27,106,"1: %ld",gameData->allTCB->tcb_proiettili[1].thread_id);
+		mvprintw(27,106,"1: %ld %d %d",gameData->allTCB->tcb_proiettili[1].thread_id,gameData->allTCB->tcb_proiettili[1].is_target,gameData->allTCB->tcb_proiettili[1].is_terminated);
 		mvprintw(28,106,"                                          ");
-		mvprintw(28,106,"2: %ld",gameData->allTCB->tcb_proiettili[2].thread_id);
+		mvprintw(28,106,"2: %ld %d %d",gameData->allTCB->tcb_proiettili[2].thread_id,gameData->allTCB->tcb_proiettili[2].is_target,gameData->allTCB->tcb_proiettili[2].is_terminated);
 		
 		//sem_wait((&arg_general)->mutex);
 		mvprintw(30,106,"                     ");
@@ -204,6 +239,23 @@ void *drawThread (void *param){
 
 		mvprintw(31,106,"                         ");
 		mvprintw(31,106,"ViteRana da gameData: %2d",gameData->gameInfo.vite);
+
+		mvprintw(32,106,"                  ");
+		mvprintw(32,106,"count Nemici: %2d",gameData->contatori.contNemici);
+
+		mvprintw(33,106,"                  ");
+		mvprintw(33,106,"nemico #0: x %2d",gameData->oldPos.nemici[0].x);
+
+		mvprintw(34,106,"                     ");
+		mvprintw(34,106,"proiettili_Nem: %2d",gameData->contatori.contProiettiliN);
+
+		for (int i = 0; i < MAXNPROIETTILI; i++)
+		{
+			mvprintw(8, 146 + (i * 9), "%d:x:%d ", i, gameData->oldPos.proiettili[i].x);
+			mvprintw(9, 146 + (i * 9), "%d:y:%d ", i, gameData->oldPos.proiettili[i].y);
+			mvprintw(10, 146 + (i * 9), "%d:t:%c ", i, gameData->oldPos.proiettili[i].type);
+			mvprintw(11, 146 + (i * 9), "%d:h:%ld ", i, gameData->oldPos.proiettili[i].thread_id);
+		}
 
 		fflush(stdout);
 		fflush(stdin);

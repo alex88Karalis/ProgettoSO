@@ -64,7 +64,7 @@ void inizializzaContatori(GameData* gameData){
 
 // Imposta la posizione iniziale della Rana nella matrice Schermo
 void inizializzaPosRana(RanaAbsPos* ranaPos){
-	ranaPos->x=40;
+	ranaPos->x=WIDTH/2;
 	ranaPos->y=MARCIAPIEDEROWSTART;
 	return;
 }
@@ -119,14 +119,14 @@ void inizializzaOldPos(OldPos* old_pos){
 			old_pos->proiettili[i].y=-1;
 			old_pos->proiettili[i].type='P';
 			old_pos->proiettili[i].id=i;
-			old_pos->proiettili[i].thread_id=0;		// nuovo
+			old_pos->proiettili[i].thread_id=0;		
 	}
 	for(int i=0;i<MAXNPROIETTILINEMICI;i++){
 			old_pos->proiettiliNemici[i].x=-1;
 			old_pos->proiettiliNemici[i].y=-1;
-			old_pos->proiettiliNemici[i].type='P';
+			old_pos->proiettiliNemici[i].type='p';
 			old_pos->proiettiliNemici[i].id=i;
-			old_pos->proiettiliNemici[i].thread_id=0;		// nuovo
+			old_pos->proiettiliNemici[i].thread_id=0;		
 
 	}
    	return;
@@ -380,13 +380,13 @@ void inizializzaSprites(Sprite* sprites){
 	char *sprite_coccodrillo_dx[COCCODRILLO_H] ={"-^^^^^^*<","  I   I  "};
 
 	sprites[S_RANA] = inizializzaSprite(RANA_H, RANA_W, sprite_rana, RANA_COL, RANA_OBJ);
-  	sprites[S_PROIETTILE] = inizializzaSprite(PROIETTILE_H, PROIETTILE_W, sprite_proiettile, PROIETTILE_COL, P_OBJ);
+  	sprites[S_PROIETTILE] = inizializzaSprite(PROIETTILE_H, PROIETTILE_W, sprite_proiettile, PROIETTILE_COL, PROIETTILE_OBJ);
 	sprites[S_TANA_APERTA] = inizializzaSprite(TANA_H, TANA_W, sprite_tana_open, TANE_COL, TANA_OPEN_OBJ);
 	sprites[S_TANA_CHIUSA] = inizializzaSprite(TANA_H, TANA_W, sprite_tana_closed, TANE_COL, TANA_CLOSE_OBJ);
-	sprites[S_PIANTA] = inizializzaSprite(PIANTA_H,PIANTA_W,sprite_pianta,PIANTA_COL,N_OBJ);
-	sprites[S_PROIETTILE_NEMICO] = inizializzaSprite(PROIETTILE_H,PROIETTILE_W,sprite_proiettile_nemico,PROIETTILE_COL,PN_OBJ);
-	sprites[S_COCCODRILLO_SX] = inizializzaSprite(COCCODRILLO_H,COCCODRILLO_W,sprite_coccodrillo_sx,COCCODRILLOBUONO_COL,COCCODRILLO_BUONO_OBJ);
-	sprites[S_COCCODRILLO_DX] = inizializzaSprite(COCCODRILLO_H,COCCODRILLO_W,sprite_coccodrillo_dx,COCCODRILLOBUONO_COL,COCCODRILLO_BUONO_OBJ);
+	sprites[S_PIANTA] = inizializzaSprite(PIANTA_H,PIANTA_W,sprite_pianta, PIANTA_COL, NEMICO_OBJ);
+	sprites[S_PROIETTILE_NEMICO] = inizializzaSprite(PROIETTILE_H,PROIETTILE_W,sprite_proiettile_nemico, PROIETTILE_COL, PROIETTILE_NEMICO_OBJ);
+	sprites[S_COCCODRILLO_SX] = inizializzaSprite(COCCODRILLO_H,COCCODRILLO_W,sprite_coccodrillo_sx, COCCODRILLOBUONO_COL, COCCODRILLO_BUONO_OBJ);
+	sprites[S_COCCODRILLO_DX] = inizializzaSprite(COCCODRILLO_H,COCCODRILLO_W,sprite_coccodrillo_dx, COCCODRILLOBUONO_COL, COCCODRILLO_BUONO_OBJ);
 
 	
 	return;

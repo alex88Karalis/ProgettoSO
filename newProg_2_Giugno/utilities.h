@@ -162,12 +162,24 @@ typedef enum{
 }TipoSprite;
 
 // rappresenta il tipo di collisione
-// elenco: NO_COLLISIONE, RANA_FIUME, RANA_TANA_APERTA, RANA_TANA_CHIUSA
+// elenco: NO_COLLISIONE, RANA_FIUME, RANA_TANA_APERTA, RANA_TANA_CHIUSA, RANA_PROIETTILE_NEMICO, NEMICO_PROIETTILE_RANA
+/**
+ * Rappresenta il tipo di collisione:
+ * - NO_COLLISIONE
+ * - RANA_FIUME
+ * - RANA_TANA_APERTA
+ * - RANA_TANA_CHIUSA
+ * - PROIETTILE_NEMICO_RANA
+ * - PROIETTILE_RANA_NEMICO
+ */
 typedef enum{
 	NO_COLLISIONE,
 	RANA_FIUME,
 	RANA_TANA_APERTA,
-	RANA_TANA_CHIUSA
+	RANA_TANA_CHIUSA,
+	PROIETTILE_NEMICO_RANA,
+	PROIETTILE_RANA_NEMICO,
+	PROIETTILE_RANA_PROIETTILE_NEMICO
 }TipoCollisione;
 
 
@@ -183,9 +195,9 @@ typedef enum{
 	MARCIAPIEDE_OBJ,
 	COCCODRILLO_CATTIVO_OBJ,
 	COCCODRILLO_BUONO_OBJ,
-	PN_OBJ,					// Proiettile Nemico
-	N_OBJ,					// Nemico
-	P_OBJ,					// Proiettile (della rana)
+	PROIETTILE_NEMICO_OBJ,					// Proiettile Nemico
+	NEMICO_OBJ,					// Nemico
+	PROIETTILE_OBJ,					// Proiettile (della rana)
 	RANA_OBJ,
 	SFONDO_OBJ,
 	LAVA_OBJ,
@@ -328,7 +340,7 @@ typedef struct {
 typedef struct{
 	pthread_t pidRana;
 	pthread_t pidProiettili[MAXNPROIETTILI];
-	pthread_t pidProiettiliNemici[MAXNPROIETTILI];
+	pthread_t pidProiettiliNemici[MAXNPROIETTILINEMICI];
 	pthread_t pidNemici[MAXNNEMICI];
 	pthread_t pidCoccodrilli[MAXNCOCCODRILLI];
 }Pids;
@@ -409,6 +421,7 @@ typedef struct{
 /*--- strutture e funzioni per Threads	----*/
 
 // Struttura che contiene i semafori
+// - sem_t window_mutex: semaforo per mutua esclusione su funzioni che usano la stdscr
 // - sem_t mutex: i semaforo binario per la sincronizzazione
 // - sem_t presenti: semaforo che indica se presente dati sul buffer
 // - sem_t disponibili: semaforo che indica se il buffer è vuoto
@@ -523,12 +536,24 @@ int joinThreadMorto(ThreadControlBlock* deadThread, sem_t* semaforo);
 
 
 
+
 /** @brief Chiama pthread_join() sui thread terminati
  * @param allSem : ptr a Struttura con i semafori
  * @param vettoreAllTCB : prt a Struttura con tutti i TCB
  * @return 0 se RANA successo, 1 se PROIETTILE , -1 in caso di errore
 */
 int pulisciThreadMorti(struct Semaphore *allSem, AllTCB* vettoreAllTCB);
+
+
+/* ---- prove--------*/
+
+void cancellaOggettoDaMatrice(GameData *gameData, PipeData *oggetto ,PipeData *old_pos, TipoSprite tipoSprite);
+
+int joinThreadMorto_2(ThreadControlBlock* deadThread, sem_t* semaforo);
+
+int pulisciThreadMorti_2( GameData* gameData , struct Semaphore* allSem);
+
+
 
 /** @brief Cerca il TCB del thread da un array di TCB e ritorna il puntatore al TCB del thread scelto
  * @param array_tcb : vettore di TCB in cui cercare
@@ -550,7 +575,7 @@ int pulisciThreadMorti(struct Semaphore *allSem, AllTCB* vettoreAllTCB);
 
 /** @brief Imposta una variabile per dire al thread di terminare 
  * @param thread_tcb : TCB del thread da far terminare
- * @param semaforo : semaforo per sincronizzazione
+ * @param semaforo : semaforo per sincronizzazione sui TCB
  * @return : 0 se ha successo, -1 se c'è un errore;
 */
 int impostaThreadTarget(ThreadControlBlock* thread_tcb,sem_t *semaforo);

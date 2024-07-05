@@ -69,7 +69,10 @@ void inizializzaNcurses() {
     srand(time(NULL));
     initscr(); // Inizializza ncurses
     curs_set(FALSE); // Nasconde il cursore
+	noecho();
     nodelay(stdscr, TRUE); // Abilita l'input non bloccante
+    cbreak();
+    wtimeout(stdscr,0);
     keypad(stdscr, TRUE); // Abilita il keypad mode
     inizializzaColorazione();
     return;
@@ -230,20 +233,22 @@ int pulisciThreadMorti(struct Semaphore* allSem,  AllTCB* vettoreAllTCB){
     ThreadControlBlock *ptrTCB = NULL;
 
     /*  RANA    */
-    bool flag = false;
     //sem_wait(&allSem->tcb_mutex);
-    ptrTCB = vettoreAllTCB->tcb_rana;
     //if(ptrTCB->is_target){perror("la RANA è TARGET ");}     //per DEBUG
     //if(ptrTCB->is_terminated){perror("la RANA è MORTA ");}
-    if(isThreadTarget(ptrTCB, &allSem->tcb_mutex)){
+    
+    /*
+    bool flag = false;
+    ptrTCB = vettoreAllTCB->tcb_rana;
+    if(isThreadTarget(ptrTCB, &allSem->tcb_mutex)){ }
         if(joinThreadMorto(ptrTCB, &allSem->tcb_mutex) == 0){       // la RANA è terminata
             beep();
             return 0;
         }else{
-            perror("Rana Join Missed!");
+            //beep();
+            //perror("Rana Join Missed!");
         }
-    }
-    
+    /**/
     
     /*  PROIETTILI  */
     
@@ -255,9 +260,118 @@ int pulisciThreadMorti(struct Semaphore* allSem,  AllTCB* vettoreAllTCB){
         };
     }
     /**/
+
+
+    
+
     
     return -1;
 }
+
+/* ------- pulitura thread morti di prova ---------------- */
+
+/** Cancella dalla matrice uno specifico oggetto passato al parametro nemico
+ * @param gameData riferimento a tutti i dati di gioco
+ * @param oggetto è il riferimento al nemico da cancellare dalla matrice
+ * @param old_pos vettore delle posizioni di tutti gli oggetti
+ * @param tiposprite il tipo della sprite
+ */
+void cancellaOggettoDaMatrice(GameData *gameData, PipeData *oggetto ,PipeData *old_pos, TipoSprite tipoSprite)
+{
+	//int id = gameData->pipeData.id;
+	
+    int id = oggetto->id;
+
+	PipeData *datiVecchi = &(old_pos[id]); // dati al passo precedente
+	
+	if (id >= 0) // se l'id è un indice di array valido
+	{
+		pulisciSpriteInMatrice(datiVecchi, &(gameData->sprites[tipoSprite]), gameData);
+		datiVecchi->x = 0;
+		datiVecchi->y = 0;
+		datiVecchi->type = ' ';
+		datiVecchi->id = id;
+		datiVecchi->thread_id = 0;
+	}
+	return;
+}
+
+
+/**
+ * @param deadThread Il TCB del thread da controllare
+ * @param semaforo  Il semaforo per sincronizzare operazioni sui TCB
+ * @return 0 se tutto OK, 1 in caso di errore 
+ */
+int joinThreadMorto_2(ThreadControlBlock* deadThread, sem_t* semaforo){
+    if(isThreadTarget(deadThread,semaforo)){
+        if(isThreadTerminated(deadThread, semaforo)){
+            pthread_join(deadThread->thread_id,NULL);
+            resetTCB(deadThread,semaforo);
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int pulisciThreadMorti_2( GameData* gameData , struct Semaphore* allSem) // solo RANA
+{
+    /* chiama la joinThreadMorto_2 per ogni thread + aggiorna/resetta pids */
+    ThreadControlBlock *tcb_thread = NULL;
+    sem_t *semaforo_tcb = &(allSem->tcb_mutex); 
+    int err ;
+    
+    /* RANA */
+    tcb_thread = gameData->allTCB->tcb_rana;
+    err = joinThreadMorto_2(tcb_thread,semaforo_tcb);
+    if (!err){
+        gameData->pids.pidRana = 0;
+        return 0;
+    }
+
+    /* PROIETTILI RANA  */
+    
+    ThreadControlBlock *tcb_proiettili = gameData->allTCB->tcb_proiettili;
+    for(int i=0; i< MAXNPROIETTILI; i++){
+        tcb_thread = &(tcb_proiettili[i]);
+        if(joinThreadMorto_2(tcb_thread, semaforo_tcb) == 0){
+            gameData->pids.pidProiettili[i]=0;
+            gameData->contatori.contProiettili = (gameData->contatori.contProiettili-1)%MAXNPROIETTILI;
+        }
+    }
+    /**/
+
+    /*  PROIETILE NEMICO    */
+    ThreadControlBlock *tcb_proiettili_nemici = gameData->allTCB->tcb_proiettili_nemici;
+    for(int i=0; i<MAXNPROIETTILINEMICI; i++){
+        tcb_thread = &(tcb_proiettili_nemici[i]);
+        if(joinThreadMorto_2(tcb_thread, semaforo_tcb) == 0){
+            gameData->pids.pidProiettiliNemici[i]=0;  // ??
+            gameData->contatori.contProiettiliN = (gameData->contatori.contProiettiliN-1)%MAXNPROIETTILINEMICI;
+        }
+    }
+
+
+    /*  NEMICO_PIANTA    */
+    ThreadControlBlock *tcb_nemici = gameData->allTCB->tcb_piante;
+    for(int i=0; i<MAXNNEMICI; i++){
+        tcb_thread = &(tcb_nemici[i]);
+        if(joinThreadMorto_2(tcb_thread, semaforo_tcb)==0){
+            //PipeData *nemico = &(gameData->oldPos.nemici[i]); // sarà il nemico giusto ??
+            //cancellaOggettoDaMatrice(gameData, nemico, gameData->oldPos.nemici, S_PIANTA);
+            gameData->pids.pidNemici[i] = 0;
+            gameData->contatori.contNemici = (gameData->contatori.contNemici-1)%MAXNNEMICI;
+            //beep();
+        }
+    }
+
+
+    return -1;
+}
+
+
+
+
+
 
 // Cercun TCB in array per tid, ritorna TCB* o NULL
 ThreadControlBlock* cercaThreadByTid(ThreadControlBlock* array_tcb, pthread_t thread_id, sem_t* semaforo, int dimVettore){

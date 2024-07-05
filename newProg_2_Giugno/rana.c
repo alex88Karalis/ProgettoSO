@@ -122,6 +122,10 @@ void *moveRanaThread(void *param){
 	
 	
 	noecho();
+	cbreak();
+	nodelay(stdscr,TRUE);
+    wtimeout(stdscr,0);
+
 	int ch='D';
     bool change=false; // flag tasto premuto/non premuto
 	// loop principale del processo rana

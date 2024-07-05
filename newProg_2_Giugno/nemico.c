@@ -150,11 +150,23 @@ void* nemicoThread(void *param){
 
 		if(!(isThreadTarget(my_tcb, &p->semafori->tcb_mutex)))
 		{	// se il thread NON deve terminare, dice a Disegna di sparare un proiettile
-			
 			if (contatore % 100 == 0)
 			{
+				nemico.type = 's';
 				scriviSuBuffer(p,nemico,my_tcb,false);
 			}
+			
+			/*
+			if (contatore % 100 == 0)
+			{
+				nemico.type = 's';
+			}else{
+				nemico.type = 'n';
+			}
+			scriviSuBuffer(p,nemico,my_tcb,false);
+			/**/
+
+
 			contatore = (contatore + 1) % 50;
 			usleep(100000*(nemico.id+1)); // Pausa diversa per ogni nemico
 		}else{

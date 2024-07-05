@@ -84,9 +84,9 @@ void *moveProiettileThread(void *param)
 	}
 
 	scriviSuBuffer(p, proiettile, tcbFromGameData, true);
-	
+	usleep(600000);
 	pthread_exit(NULL);
-	return NULL;
+	
 }
 
 
