@@ -14,7 +14,6 @@ Collisione detectCollisione(GameData* gameData){
         // rana
         case 'X':   // Rana
         {
-
             // calcolo posizone assoluta della rana in potenza
             // ovvero sommo a abspos la posizione relativa in pipe
             RanaAbsPos ranaPos;
@@ -24,6 +23,22 @@ Collisione detectCollisione(GameData* gameData){
             // se il movimento della rana non è lecito non c'è aggiornamento ne collisione
             if(!isFrogMoveLecit(ranaPos.x,ranaPos.y)){
                 return collisione;
+            }
+
+            // se la rana si è spostata lungo un coccodrillo devo modificare solo l'offset della rana
+            if(gameData->pipeData.x != 0 && gameData->ranaAbsPos.on_coccodrillo){
+                
+                int offset= gameData->ranaAbsPos.offset_on_coccodrillo + gameData->pipeData.x;
+                // se il movimento lungo il coccodrillo è lecito ovvero non sfora:
+                if(offset>=0 && offset<=9){
+                    // aggiorno offset
+                    gameData->ranaAbsPos.offset_on_coccodrillo += gameData->pipeData.x;
+                }
+                else{
+                    // non c'è aggiornamento ne collisione
+                    return collisione;
+                }
+                
             }
 
             for (int row = ranaPos.y; row < ranaPos.y + RANA_H; row++)
@@ -55,6 +70,18 @@ Collisione detectCollisione(GameData* gameData){
                             collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
                             return collisione;
                             break;
+
+                        case COCCODRILLO_BUONO_OBJ:
+                            collisione.tipoCollisione = RANA_COCCODRILLO_BUONO;
+                            collisione.id_oggetto_attivo = gameData->pipeData.id;
+                            collisione.oggetto_attivo = RANA_OBJ;
+                            collisione.id_oggetto_passivo = schermo->screenMatrix[row][col].id;
+                            collisione.oggetto_passivo = COCCODRILLO_BUONO_OBJ;
+                            collisione.hit_point_x=col;
+                            collisione.hit_point_y=row;
+                            return collisione;
+                            break;
+
                         case PROIETTILE_NEMICO_OBJ:
                             /* Rileva la collisione della Rana che passa sul proiettileNemico rimasto a terra
                                 - possibile implemento per una feature aggiuntiva al gameplay
@@ -74,6 +101,61 @@ Collisione detectCollisione(GameData* gameData){
             }
             break;
         }
+        
+        case 'P':   // proiettile Rana
+        {
+            PipeData proiettile = gameData->pipeData;
+            for (int row = proiettile.y; row < proiettile.y + PROIETTILE_H; row++)
+            {
+                for(int col = proiettile.x; col < proiettile.x + PROIETTILE_W; col++)
+                {
+                    switch(schermo->screenMatrix[row][col].tipo){
+                        
+                        case NEMICO_OBJ:
+                            collisione.tipoCollisione=PROIETTILE_RANA_NEMICO;
+                            collisione.id_oggetto_attivo=gameData->pipeData.id;
+                            collisione.oggetto_attivo= PROIETTILE_OBJ;
+                            collisione.oggetto_passivo=NEMICO_OBJ;
+                            collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                            return collisione;
+                            break;
+                        
+                        case PROIETTILE_NEMICO_OBJ:
+                            collisione.tipoCollisione=PROIETTILE_RANA_PROIETTILE_NEMICO;
+                            collisione.id_oggetto_attivo=gameData->pipeData.id;
+                            collisione.oggetto_attivo= PROIETTILE_OBJ;
+                            collisione.oggetto_passivo=PROIETTILE_NEMICO_OBJ;
+                            collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                            return collisione;
+                            break;
+                        
+                        case COCCODRILLO_CATTIVO_OBJ:
+                            collisione.tipoCollisione = PROIETTILE_COCCODRILLO_CATTIVO;
+                            collisione.id_oggetto_attivo = proiettile.id;
+                            collisione.oggetto_attivo = PROIETTILE_OBJ;
+                            collisione.oggetto_passivo = COCCODRILLO_CATTIVO_OBJ;
+                            collisione.id_oggetto_passivo = schermo->screenMatrix[row][col].id;
+                            collisione.hit_point_x=col;
+                            collisione.hit_point_y=row;
+                            break;
+
+                        case COCCODRILLO_BUONO_OBJ:
+                            collisione.tipoCollisione = PROIETTILE_COCCODRILLO_BUONO;
+                            collisione.id_oggetto_attivo = proiettile.id;
+                            collisione.oggetto_attivo = PROIETTILE_OBJ;
+                            collisione.oggetto_passivo = COCCODRILLO_BUONO_OBJ;
+                            collisione.id_oggetto_passivo = schermo->screenMatrix[row][col].id;
+                            collisione.hit_point_x=col;
+                            collisione.hit_point_y=row;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            break;
+        }
+         
         case 'p':   // proiettile Nemico
         {
             PipeData proiettileNemico = (gameData->pipeData);
@@ -108,38 +190,67 @@ Collisione detectCollisione(GameData* gameData){
             }
             break;
         }
-        case 'P':   // proiettile Rana
+       
+        case 'C':   // Coccodrilli
+        case 'c':
         {
-            PipeData proiettile = gameData->pipeData;
-            for (int row = proiettile.y; row < proiettile.y + PROIETTILE_H; row++)
+            PipeData coccodrilloData = gameData->pipeData;
+            if (!(gameData->controlloCoccodrilli[coccodrilloData.id].is_buono)) // se coccodrillo è cattivo
             {
-                for(int col = proiettile.x; col < proiettile.x + PROIETTILE_W; col++)
+                for (int row = coccodrilloData.y; row < coccodrilloData.y + COCCODRILLO_H; row++)
                 {
-                    switch(schermo->screenMatrix[row][col].tipo){
-                        
-                        case NEMICO_OBJ:
-                            collisione.tipoCollisione=PROIETTILE_RANA_NEMICO;
-                            collisione.id_oggetto_attivo=gameData->pipeData.id;
-                            collisione.oggetto_attivo= PROIETTILE_OBJ;
-                            collisione.oggetto_passivo=NEMICO_OBJ;
-                            collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
-                            return collisione;
-                            break;
-                        
-                        case PROIETTILE_NEMICO_OBJ:
-                            collisione.tipoCollisione=PROIETTILE_RANA_PROIETTILE_NEMICO;
-                            collisione.id_oggetto_attivo=gameData->pipeData.id;
-                            collisione.oggetto_attivo= PROIETTILE_OBJ;
-                            collisione.oggetto_passivo=PROIETTILE_NEMICO_OBJ;
-                            collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                    for (int col = coccodrilloData.x; col < coccodrilloData.x + COCCODRILLO_W; col++)
+                    {
+
+                        switch (schermo->screenMatrix[row][col].tipo) 
+                        {
+                        case PROIETTILE_OBJ:        // collide con proiettileRana
+                        /*  oggetto attivo = coccodrillo, oggetto passivo = proiettile  */
+                            collisione.tipoCollisione = PROIETTILE_COCCODRILLO_CATTIVO;
+                            collisione.id_oggetto_attivo = coccodrilloData.id;
+                            collisione.oggetto_attivo = COCCODRILLO_CATTIVO_OBJ;
+                            collisione.oggetto_passivo = PROIETTILE_OBJ;
+                            collisione.id_oggetto_passivo = schermo->screenMatrix[row][col].id;
+                            collisione.hit_point_x=col;
+                            collisione.hit_point_y=row;
                             return collisione;
                             break;
                         default:
                             break;
+                        }
                     }
                 }
             }
-            break;
+            else    //se il coccodrillo è buono
+            {   
+                 for (int row = coccodrilloData.y; row < coccodrilloData.y + COCCODRILLO_H; row++)
+                {
+                    for (int col = coccodrilloData.x; col < coccodrilloData.x + COCCODRILLO_W; col++)
+                    {
+                        switch (schermo->screenMatrix[row][col].tipo)   // ha colliso con...?
+                        {
+                        case RANA_OBJ:  // RANA
+                            /* oggetto attivo = coccodrillo, oggetto passivo = rana */
+                            collisione.tipoCollisione = RANA_COCCODRILLO_BUONO;
+                            collisione.id_oggetto_attivo = gameData->pipeData.id;
+                            collisione.oggetto_attivo = COCCODRILLO_BUONO_OBJ ;
+                            collisione.id_oggetto_passivo = schermo->screenMatrix[row][col].id;
+                            collisione.oggetto_passivo = RANA_OBJ;
+                            collisione.hit_point_x=col;
+                            collisione.hit_point_y=row;
+                            return collisione;
+                            break;
+                        default:
+                            break;
+                        }
+                        
+                    }
+                }
+
+                
+                
+            }
+            
         }
         default:
             break;
@@ -308,6 +419,108 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
             break;
         }
         
+        case PROIETTILE_COCCODRILLO_CATTIVO:
+        {
+            // il proiettile muore e il coccodrillo diventa buono
+            // l'oggetto attivo è il proiettile
+            if (collisione.oggetto_attivo == PROIETTILE_OBJ)
+            {
+                // uccide il processo proiettile
+                ThreadControlBlock *tcb_proiettile = &(gameData->allTCB->tcb_proiettili[collisione.id_oggetto_attivo]);
+                pthread_t tid_proiettile = leggiTid( tcb_proiettile, semaforoTCB);
+
+                if(tid_proiettile==0)   // collisione rilevata da thread gia chiuso e tcb resettato
+                {
+                    cancellaOggetto(gameData, gameData->oldPos.proiettili, S_PROIETTILE);
+                    break;
+                }
+                
+                if(isThreadTarget(tcb_proiettile, semaforoTCB)){
+                    if(isThreadTerminated(tcb_proiettile, semaforoTCB))
+                    { 
+                        cancellaOggetto(gameData, gameData->oldPos.proiettili, S_PROIETTILE);
+                    }
+                    break; 
+                }
+
+                impostaThreadTarget(tcb_proiettile,semaforoTCB);
+                    
+                    //uccidiProiettile(gameData->pids.pidProiettili, collisione.id_oggetto_attivo); 
+                
+                // ucciso processo proiettile e impostato a zero il pid in array pid proiettili
+                    //cancellaOggetto(gameData, gameData->oldPos.proiettili, S_PROIETTILE);
+                    //gameData->contatori.contProiettili--;
+
+
+                // il coccodrillo diventa buono
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].is_buono = true;
+
+                // il coccodrillo esce da tutte le fasi in cui si trova
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].offset_deep = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].is_fase_pre_immersione = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].is_fase_immersione = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].is_going_deep = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].is_going_up = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].passi_in_immersione = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].passi_in_pre_immersione = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].passi_deep = 0;
+            }
+            else
+            {
+                /*
+                // l'oggetto attivo è il tronco
+                // faccio caso collisione apparte?
+
+                uccidiProiettile(gameData->pids.pidProiettili, collisione.id_oggetto_passivo); // uccide il processo proiettile
+                // ucciso processo proiettile e impostato a zero il pid in array pid proiettili
+                cancellaOggetto(gameData, gameData->oldPos.proiettili, S_PROIETTILE);
+                gameData->contatori.contProiettili--;
+
+                // il coccodrillo diventa buono
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].is_buono = true;
+                // il coccodrillo esce da tutte le fasi in cui si trova
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].offset_deep = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].is_fase_pre_immersione = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].is_fase_immersione = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].is_going_deep = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].is_going_up = false;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].passi_in_immersione = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].passi_in_pre_immersione = 0;
+                gameData->controlloCoccodrilli[collisione.id_oggetto_attivo].passi_deep = 0;
+                /**/
+            }
+            break;
+        }
+
+        case PROIETTILE_COCCODRILLO_BUONO:  // proiettile Rana collide con Coccodrillo Buono
+        {
+            /*  distruggo il proiettile e basta  */
+            if(collisione.oggetto_attivo==PROIETTILE_OBJ)
+            {
+                ThreadControlBlock *tcb_proiettile = &(gameData->allTCB->tcb_proiettili[collisione.id_oggetto_attivo]);
+                pthread_t tid_proiettile = leggiTid(tcb_proiettile, semaforoTCB);
+                if(tid_proiettile==0){ 
+                    // cancellando la sprite evita altre collisioni
+                    cancellaOggetto(gameData, gameData->oldPos.proiettili, S_PROIETTILE);
+                    break;
+                }
+                if(isThreadTarget(tcb_proiettile, semaforoTCB)){
+                    if(isThreadTerminated(tcb_proiettile, semaforoTCB)){
+                        break;
+                    }
+                }
+                impostaThreadTarget(tcb_proiettile, semaforoTCB); 
+            
+            }else   // oggetto attivo = coccodrillo
+            {   
+                /*  ce n'è bisogno ?. 
+                    devo distruggere solo il proiettile, al coccodrillo non succede nulla. 
+                */
+
+            }
+            break;
+        }
+
         case PROIETTILE_NEMICO_PROIETTILE_RANA: // proiettileNemico ha colpito proiettileRana
         {   // oggetto attivo = proiettileNemico. oggetto passivo = proiettileRana
             // su gameData->pipData è scritto il proiettileNemico !!
@@ -341,6 +554,65 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
             beep();
             break;
         }
+        
+        case RANA_COCCODRILLO_BUONO:
+        {
+            if(collisione.oggetto_attivo==RANA_OBJ){    // oggetto attivo=Rana. oggetto passivo=Coccodrillo
+                // stampo il coccodrillo buono
+                if(gameData->controlloCoccodrilli[collisione.id_oggetto_passivo].direction==1){
+                    aggiornaOggettoNew(gameData,gameData->oldPos.coccodrilli[collisione.id_oggetto_passivo],gameData->oldPos.coccodrilli,S_COCCODRILLO_DX);
+                }
+                else{
+                    aggiornaOggettoNew(gameData,gameData->oldPos.coccodrilli[collisione.id_oggetto_passivo],gameData->oldPos.coccodrilli,S_COCCODRILLO_SX);
+                }
+
+                // stampo sopra il coccodrillo buono la rana
+                // aggiorno abs pos rana
+                gameData->ranaAbsPos.x = collisione.hit_point_x;
+                gameData->ranaAbsPos.y = collisione.hit_point_y;
+                gameData->ranaAbsPos.on_coccodrillo=true;
+                gameData->ranaAbsPos.id_coccodrillo= collisione.id_oggetto_passivo;
+                // aggiorno offset rana su coccodrillo
+                gameData->ranaAbsPos.offset_on_coccodrillo= collisione.hit_point_x- gameData->oldPos.coccodrilli[collisione.id_oggetto_passivo].x;
+                // stampo e aggiorno rana
+                PipeData ranaData;
+                ranaData.x= gameData->ranaAbsPos.x;
+                ranaData.type='X';
+                ranaData.y=gameData->ranaAbsPos.y;
+                ranaData.id= 0;
+                aggiornaOggettoNew(gameData,ranaData,&(gameData->oldPos.rana),S_RANA);
+
+            }else{  
+            
+                // l'oggetto attivo è il coccodrillo buono
+                // stampo il coccodrillo buono
+                if(gameData->controlloCoccodrilli[gameData->pipeData.id].direction==1){
+                    aggiornaOggetto(gameData,gameData->oldPos.coccodrilli,S_COCCODRILLO_DX);
+                }
+                else{
+                    aggiornaOggetto(gameData,gameData->oldPos.coccodrilli,S_COCCODRILLO_SX);
+                }
+                // aggiorno abs pos rana
+                gameData->ranaAbsPos.x = collisione.hit_point_x;
+                gameData->ranaAbsPos.y = collisione.hit_point_y;
+                gameData->ranaAbsPos.on_coccodrillo=true;
+                gameData->ranaAbsPos.id_coccodrillo= collisione.id_oggetto_attivo;
+                // aggiorno offset rana su coccodrillo
+                gameData->ranaAbsPos.offset_on_coccodrillo = collisione.hit_point_x - gameData->oldPos.coccodrilli[collisione.id_oggetto_attivo].x ;
+                // stampo e aggiorno rana
+                PipeData ranaData;
+                ranaData.x= gameData->ranaAbsPos.x;
+                ranaData.type='X';
+                ranaData.y=gameData->ranaAbsPos.y;
+                ranaData.id= 0;
+                // stampo sopra il coccodrillo buono la rana
+                aggiornaOggettoNew(gameData,ranaData, &(gameData->oldPos.rana), S_RANA);
+
+            /**/
+            }
+            break;
+        }
+        
         default:
 			break;
 	}

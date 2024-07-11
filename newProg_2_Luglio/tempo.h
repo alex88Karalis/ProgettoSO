@@ -1,7 +1,7 @@
 #ifndef TEMPOX_H
 #define TEMPOX_H
 #include "utilities.h"
-#include <sys/time.h>
+//#include <sys/time.h> // in più??
 
 /* --------     PROCESSI      ----------  */
 

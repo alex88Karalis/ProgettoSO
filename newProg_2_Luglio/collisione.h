@@ -1,8 +1,8 @@
 #ifndef COLLISIONE_H
 #define COLLISIONE_H
 #include "utilities.h"
+#include "rana.h"
 #include "schermo.h"
-
 
 
 Collisione detectCollisione(GameData* gameData);

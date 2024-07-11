@@ -16,6 +16,8 @@ SDL_MIXER_LIBS := -lSDL2_mixer
 # Opzioni di compilazione
 CFLAGS := -Wall -Wextra $(SDL_CFLAGS) -g
 
+#CFLAGS := -gdb -Wall -Wextra -g
+
 # Librerie necessarie
 LDLIBS := -lncurses -lpthread $(SDL_LIBS) $(SDL_MIXER_LIBS)
 

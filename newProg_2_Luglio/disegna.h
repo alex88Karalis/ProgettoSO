@@ -8,10 +8,11 @@
 #include "proiettile.h"
 #include "hud.h"
 #include "schermo.h"
-#include "nemico.h"
-#include "proiettileNemico.h"
-#include "coccodrillo.h"
-#include "tempo.h"
+
+//#include "nemico.h"             // in più?
+//#include "proiettileNemico.h"   // in più?
+//#include "tempo.h"              // in più?
+//#include "coccodrillo.h"
 
 /** @brief Avvia il thread Disegna e restituisce il suo thread_id.
  *  @param thread_args: Parametri da passare al thread: semafori, buffer, e GameData.

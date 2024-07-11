@@ -14,8 +14,10 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include "sound.h"
-#include <stddef.h>
+//#include <stddef.h>  // in più??
+//#include "tempo.h"
 //#include "schermo.h"
+
 
 // colori aggiuntivi
 #define COLOR_GRAY 8
@@ -222,6 +224,7 @@ typedef enum{
 	PROIETTILE_RANA_PROIETTILE_NEMICO,
 	PROIETTILE_NEMICO_PROIETTILE_RANA,
 	PROIETTILE_COCCODRILLO_CATTIVO,
+	PROIETTILE_COCCODRILLO_BUONO,
 	RANA_COCCODRILLO_BUONO
 }TipoCollisione;
 
@@ -417,6 +420,9 @@ typedef struct{
 typedef struct{
 	int x;
 	int y;
+	bool on_coccodrillo;
+	int id_coccodrillo;
+	int offset_on_coccodrillo;
 }RanaAbsPos;
 
 /*	Struttura che registra lo stato del coccodrillo
@@ -461,7 +467,7 @@ typedef struct{
 	int* pipe; // la pipe
 	PipeData pipeData; // struttura per salvare i dati letti da buffer
 	RanaAbsPos ranaAbsPos; // struttura per posizione assoluta della rana
-	Sprite sprites[9]; // le sprite degli oggetti
+	Sprite sprites[N_SPRITES]; // le sprite degli oggetti
 	Schermo schermo; // lo schermo
 	Pids pids; // tutti i pid dei processi figli
 	Cont contatori; // contatori per oggetti
@@ -642,7 +648,7 @@ int joinThreadMorto(ThreadControlBlock* deadThread, sem_t* semaforo);
 /** @brief Chiama pthread_join() sui thread terminati
  * @param allSem : ptr a Struttura con i semafori
  * @param vettoreAllTCB : prt a Struttura con tutti i TCB
- * @return 0 se RANA successo, 1 se PROIETTILE , -1 in caso di errore
+ * @return 0 se RANA successo, -1 in ogni altro caso di errore
 */
 int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem);
 
@@ -737,4 +743,9 @@ bool isWin(GameData* gameData);
 /** @brief stampa a schermo il bordo dell gioco*/
 void stampaBox();
 bool isFrogMoveLecit(int newX, int newY);
+
+/** Chiude i thread attivi per resettare la manche */
+void resetManche(Params *p);
+void terminaTuttiThread(GameData* gameData , struct Semaphore* allSem);
+
 #endif // UTILITIES_H

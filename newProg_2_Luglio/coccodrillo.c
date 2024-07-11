@@ -103,7 +103,10 @@ pthread_t avviaCoccodrilloThread(Params_coccodrilli *thread_args, int id)
         perror("ERR: Avvio Coccodrillo Fallito!");
 		_exit(3);
     }
+    // scrivo il suo threadID direttamente nei pids 
+    Params* p = thread_args->param;
     
+    //p->gameData->pids.pidCoccodrilli[id] = tid_coccodrillo;
     return tid_coccodrillo;
 }// end avviaCOccodrilloThread
 
@@ -115,7 +118,7 @@ void *coccodrilloThread(void *param){
     sem_t *semaforoTCB = &(p->semafori->tcb_mutex);
 	pthread_t my_tid = pthread_self();
 	ThreadControlBlock my_tcb = {my_tid,false,false};
-	copiaTCB(&(p->gameData->allTCB->tcb_coccodrilli[p->id]), my_tcb, &(p->semafori->tcb_mutex));
+	copiaTCB(&(p->gameData->allTCB->tcb_coccodrilli[p->id]), my_tcb, semaforoTCB);
 
     ThreadControlBlock *coccodrilloTCB = &(p->gameData->allTCB->tcb_coccodrilli[p->id]);
 
@@ -163,11 +166,15 @@ void *coccodrilloThread(void *param){
             break;
         }
         coccodrillo.x += dirX;
-        scriviSuBuffer(p, coccodrillo, &(my_tcb), false);
+        scriviSuBuffer(p, coccodrillo, coccodrilloTCB, false);
+        
+        //scriviSuBuffer(p, coccodrillo, &(my_tcb), false);
         //write(pipe_fd[1], &coccodrillo, sizeof(PipeData));
         usleep(200000); // Aspetta un po' prima di generare nuove coordinate
     }
-    scriviSuBuffer(p, coccodrillo, &(my_tcb), true);
+    
+    scriviSuBuffer(p, coccodrillo, coccodrilloTCB, true);
+    //scriviSuBuffer(p, coccodrillo, &(my_tcb), true);
     pthread_exit(NULL);
 }// end coccodrilloThread
 

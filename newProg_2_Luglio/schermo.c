@@ -82,12 +82,15 @@ void stampaSpriteInMatrice(PipeData *datiNuovi, Sprite *sprite, GameData *gameDa
 		{
 			row = startRow + i;
 			col = startCol + j;
+			if (col <= LASTGAMECOL && col >= FIRSTGAMECOL)
+			{
+				schermo->screenMatrix[row][col].ch = sprite->sprite[i][j];
+				schermo->screenMatrix[row][col].color = sprite->color;
+				schermo->screenMatrix[row][col].is_changed = true;
+				schermo->screenMatrix[row][col].id = pipeData->id;
+				schermo->screenMatrix[row][col].tipo = sprite->tipo; // nuova
 
-			schermo->screenMatrix[row][col].ch = sprite->sprite[i][j];
-			schermo->screenMatrix[row][col].color = sprite->color;
-			schermo->screenMatrix[row][col].is_changed = true;
-			schermo->screenMatrix[row][col].id = pipeData->id;
-			schermo->screenMatrix[row][col].tipo = sprite->tipo; // nuova
+			}
 		}
 	}
 	return;
@@ -442,17 +445,23 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 	}
 	case 'C': // Coccodrillo 
 	{
+		ThreadControlBlock *coccodrillo = &(gameData->allTCB->tcb_coccodrilli[gameData->pipeData.id]);
+		pthread_t tid_coccodrillo = leggiTid(coccodrillo, semaforoTCB);
+		
+		if (tid_coccodrillo == 0){	break; } // se il thread è gia terminato e il tcb resettato, esci
+		if(isThreadTarget(coccodrillo, semaforoTCB)){ break; } // il thread non è terminato ma sta terminando
+		
 		// controllo se il coccodrillo sfora come faccio a capire verso che direzione va?
 		if (gameData->pipeData.x > LASTGAMECOL)
 		{
-			ThreadControlBlock *coccodrillo = &(gameData->allTCB->tcb_coccodrilli[gameData->pipeData.id]);
+			//ThreadControlBlock *coccodrillo = &(gameData->allTCB->tcb_coccodrilli[gameData->pipeData.id]);
 			impostaThreadTarget( coccodrillo, semaforoTCB);
 			//uccidiCoccodrillo(gameData->pids.pidCoccodrilli, gameData->pipeData.id);
 			cancellaOggetto(gameData, gameData->oldPos.coccodrilli, S_COCCODRILLO_DX_C);
 			// todo reset del controlloCoccodrilli, da finire
 			gameData->controlloCoccodrilli[gameData->pipeData.id].passi = 0;
 			gameData->controlloCoccodrilli[gameData->pipeData.id].passi_in_immersione = 0;
-			gameData->contatori.contCoccodrilli--;
+			//gameData->contatori.contCoccodrilli--;
 		}
 		else
 		{
@@ -462,11 +471,16 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 	}
 	case 'c':
 	{
+		ThreadControlBlock *coccodrillo = &(gameData->allTCB->tcb_coccodrilli[gameData->pipeData.id]);
+		
+		pthread_t tid_coccodrillo = leggiTid(coccodrillo, semaforoTCB);
+		if (tid_coccodrillo == 0){	break; } // se il thread è gia terminato e il tcb resettato, esci
+		if(isThreadTarget(coccodrillo, semaforoTCB)) { break; } // il thread non è terminato ma sta terminando
 
+		
 		// controllo che il coccodrillo non abbia sforato a sinistra
 		if (gameData->pipeData.x < FIRSTGAMECOL - 9)
 		{
-			ThreadControlBlock *coccodrillo = &(gameData->allTCB->tcb_coccodrilli[gameData->pipeData.id]);
 			impostaThreadTarget( coccodrillo, semaforoTCB);
 
 			//uccidiCoccodrillo(gameData->pids.pidCoccodrilli, gameData->pipeData.id);
@@ -474,7 +488,7 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 			// todo reset del controlloCoccodrilli, da finire
 			gameData->controlloCoccodrilli[gameData->pipeData.id].passi = 0;
 			gameData->controlloCoccodrilli[gameData->pipeData.id].passi_in_immersione = 0;
-			gameData->contatori.contCoccodrilli--;
+			//gameData->contatori.contCoccodrilli--;
 		}
 		else
 		{
@@ -482,10 +496,56 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 		}
 		break;
 	}
-	case 'T':
+	case 'T':	// thread TEMPO
 	{
 		// arrivato tempo di gioco
-		gameData->gameInfo.tempo.milliseconds = gameData->pipeData.x;
+		pthread_t tid_tempo = leggiTid(&(gameData->allTCB->tcb_tempo), semaforoTCB);
+		if(tid_tempo == 0){	break;	}
+		if(isThreadTarget(&gameData->allTCB->tcb_tempo, semaforoTCB)){	break; }
+		
+		
+		int maxSeconds = 0; // nuermo massimo di secondi per manche a seconda del livello
+		switch (gameData->gameInfo.livello)
+		{
+		case 1:
+			maxSeconds= TEMPOLVL1;
+			break;
+		case 2:
+			maxSeconds = TEMPOLVL2;
+			break;
+		case 3:
+			maxSeconds = TEMPOLVL3;
+			break;
+		default:
+			break;
+		}
+
+		if(gameData->gameInfo.tempo.secondi >= maxSeconds) //tempo scaduto RESETTA LA MANCHE
+		{
+			// resetta la manche
+
+			gameData->gameInfo.manche--;
+			gameData->gameInfo.mancheIsChanged=true;
+			gameData->gameInfo.vite--;
+			gameData->gameInfo.viteIsChanged = true;
+
+			//impostaThreadTarget(gameData->allTCB->tcb_rana, semaforoTCB);	// termino la Rana
+			impostaThreadTarget( &gameData->allTCB->tcb_tempo, semaforoTCB);// termino il Tempo
+			gameData->gameInfo.tempo.secondi = 0;
+			
+			//resetManche(thread_arg);
+			terminaTuttiThread( gameData, thread_arg->semafori);
+
+			//gameData->gameInfo.vite == 0;
+			
+			//isGameOver(gameData); ??
+		}
+		else
+		{
+			gameData->gameInfo.tempo.secondi = gameData->pipeData.x;
+		}
+
+		//gameData->gameInfo.tempo.milliseconds = gameData->pipeData.x;
 	}
 	case 'Y':
 		// uccidiProiettileThread(thread_arg, gameData,gameData->pipeData.thread_id);
@@ -653,10 +713,26 @@ void handleCoccodrilloMovement(GameData *gameData)
 				if (gameData->controlloCoccodrilli[gameData->pipeData.id].is_buono)
 				{
 					aggiornaOggetto(gameData, gameData->oldPos.coccodrilli, S_COCCODRILLO_DX);
+					/*
 					if(gameData->controlloCoccodrilli[gameData->pipeData.id].rana_on){
 						// ci stampo sopra la rana
 						stampaSpriteInMatrice(&(gameData->oldPos.coccodrilli[gameData->pipeData.id]), &(gameData->sprites[S_RANA]),gameData);
 						
+					}
+					/**/
+
+					if (gameData->ranaAbsPos.id_coccodrillo == gameData->pipeData.id)
+					{
+						// ci stampo sopra la rana
+						PipeData rana;
+						rana.x = gameData->oldPos.coccodrilli[gameData->pipeData.id].x + gameData->ranaAbsPos.offset_on_coccodrillo;
+						rana.y = gameData->oldPos.coccodrilli[gameData->pipeData.id].y;
+						rana.id = 0;
+						rana.type = 'X';
+						// aggiorno rana abs pos
+						gameData->ranaAbsPos.x = rana.x;
+						gameData->ranaAbsPos.y = rana.y;
+						stampaSpriteInMatrice(&(rana), &(gameData->sprites[S_RANA]), gameData);
 					}
 				}
 				else
@@ -670,11 +746,27 @@ void handleCoccodrilloMovement(GameData *gameData)
 				if (gameData->controlloCoccodrilli[gameData->pipeData.id].is_buono)
 				{
 					aggiornaOggetto(gameData, gameData->oldPos.coccodrilli, S_COCCODRILLO_SX);
+					/*					
 					if(gameData->controlloCoccodrilli[gameData->pipeData.id].rana_on){
 						// ci stampo sopra la rana
 						stampaSpriteInMatrice(&(gameData->oldPos.coccodrilli[gameData->pipeData.id]), &(gameData->sprites[S_RANA]),gameData);
-						
 					}
+					/**/
+
+					if (gameData->ranaAbsPos.id_coccodrillo == gameData->pipeData.id)
+					{
+						// ci stampo sopra la rana
+						PipeData rana;
+						rana.x = gameData->oldPos.coccodrilli[gameData->pipeData.id].x + gameData->ranaAbsPos.offset_on_coccodrillo;
+						rana.y = gameData->oldPos.coccodrilli[gameData->pipeData.id].y;
+						rana.id = 0;
+						rana.type = 'X';
+						// aggiorno rana abs pos
+						gameData->ranaAbsPos.x = rana.x;
+						gameData->ranaAbsPos.y = rana.y;
+						stampaSpriteInMatrice(&(rana), &(gameData->sprites[S_RANA]), gameData);
+					}
+
 				}
 				else
 				{

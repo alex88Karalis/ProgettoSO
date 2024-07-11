@@ -2,6 +2,8 @@
 
 #define DEBUG
 //#define FAKE_RANA
+//#define DEBUG_PROIETTILI
+#define DEBUG_COCCODRILLI
 
 void *buff_Reader(void *param){
 	Params *p=(Params*)param;
@@ -105,6 +107,7 @@ void *drawThread (void *param){
 
 		leggiDaBuffer( &(arg_general), &(gameData->pipeData) );
 
+
 		//	ATTENZIONE: potresti aver letto da buffer l'ultima scrittura di un thread gia chiuso!!
 		//				coontrollare se tcb.thread_id==0  	|| 		usare la cercaThreadByTid(...)
 		//				oppure togliere ultima scrittura sul buffer dai thread che terminano?
@@ -130,6 +133,8 @@ void *drawThread (void *param){
 		mvprintw(0,106,"                                      ");
 		mvprintw(0,106,"pipeData: %c x: %d y: %d id: %d",gameData->pipeData.type,gameData->pipeData.x,gameData->pipeData.y,gameData->pipeData.id);
 
+		//mvprintw(0,146,"MAXint: %d", INT16_MAX);
+
 		mvprintw(1,106,"                                      ");
 		mvprintw(1,106,"RANA tid: %ld",gameData->allTCB->tcb_rana->thread_id);
 
@@ -139,6 +144,7 @@ void *drawThread (void *param){
 		mvprintw(3,106,"               ");
 		mvprintw(3,106,"MAX Proiettili : %d ", (int)(sizeof(gameData->allTCB->tcb_proiettili)/sizeof(ThreadControlBlock)));
 
+		#ifdef DEBUG_PROIETTILI
 		mvprintw(4,106,"THREAD ID BEFORE UPDATE");
 		mvprintw(5,106,"                                ");
 		mvprintw(5,106,"%ld",gameData->pids.pidProiettili[0]);
@@ -157,7 +163,30 @@ void *drawThread (void *param){
 
 		mvprintw(14,106,"                                ");
 		mvprintw(14,106,"CONT PROIETTILI PRE UPDATE: %d",gameData->contatori.contProiettili);
-		
+		#endif
+
+
+		#ifdef DEBUG_COCCODRILLI
+		mvprintw(4,106,"COCCODRILLI THREAD ID BEFORE UPDATE");
+		mvprintw(5,106,"                                ");
+		mvprintw(5,106,"%ld",gameData->pids.pidCoccodrilli[0]);
+		mvprintw(6,106,"                                ");
+		mvprintw(6,106,"%ld",gameData->pids.pidCoccodrilli[1]);
+		mvprintw(7,106,"                                ");
+		mvprintw(7,106,"%ld",gameData->pids.pidCoccodrilli[2]);
+
+		mvprintw(20,106,"TCB COCCODRILLI PRE UPDATE per indice");
+		mvprintw(21,106,"                                          ");
+		mvprintw(21,106,"0: %ld %d %d",gameData->allTCB->tcb_coccodrilli[0].thread_id,gameData->allTCB->tcb_coccodrilli[0].is_target,gameData->allTCB->tcb_coccodrilli[0].is_terminated);
+		mvprintw(22,106,"                                          ");
+		mvprintw(22,106,"1: %ld %d %d",gameData->allTCB->tcb_coccodrilli[1].thread_id,gameData->allTCB->tcb_coccodrilli[1].is_target,gameData->allTCB->tcb_coccodrilli[1].is_terminated);
+		mvprintw(23,106,"                                          ");
+		mvprintw(23,106,"2: %ld %d %d",gameData->allTCB->tcb_coccodrilli[2].thread_id,gameData->allTCB->tcb_coccodrilli[2].is_target,gameData->allTCB->tcb_coccodrilli[2].is_terminated);
+
+		mvprintw(14,106,"                                ");
+		mvprintw(14,106,"CONT COCCODRILLI PRE UPDATE: %d",gameData->contatori.contCoccodrilli);
+		#endif
+
 		// fine debug
 		#endif
 		
@@ -180,10 +209,14 @@ void *drawThread (void *param){
 		//--------------AVVIO NEMICI / PIANTE ------------------
 		// TODO - aggiustare cancellazione piante 
 
-		if(gameData->contatori.contNemici < MAXNNEMICI && countdown_piante==0 ){
-			//int nemicoID = 2;
-			int nemicoID = id_disponibile(p->gameData->pids.pidNemici,MAXNNEMICI);
-			if(nemicoID >= 0){
+		if(gameData->contatori.contNemici < MAXNNEMICI-1 && countdown_piante==0 ){
+			
+			
+			int nemicoID = rand()%MAXNNEMICI;
+			//int nemicoID = id_disponibile(p->gameData->pids.pidNemici,MAXNNEMICI);
+			
+			if(nemicoID >= 0 && (gameData->pids.pidNemici[nemicoID]==0)){
+			//if(nemicoID >= 0){
 				pthread_t nemico = avviaNemicoThread(&arg_general, nemicoID);
 				gameData->pids.pidNemici[nemicoID] = nemico;
 				//gameData->contatori.contNemici++;
@@ -191,11 +224,13 @@ void *drawThread (void *param){
 
 			}
 		}
-		//countdown_piante = (countdown_piante+1) %100;
+		countdown_piante = (countdown_piante+1) %100;
 		
 		//----------------- AVVIO COCCODRILLI ------------------
 
-		sec = gameData->gameInfo.tempo.milliseconds / 1000;
+		sec = gameData->gameInfo.tempo.secondi;
+
+		//sec = gameData->gameInfo.tempo.milliseconds / 1000;
 
 		if (sec % 2 == 0)
 		{
@@ -208,7 +243,7 @@ void *drawThread (void *param){
 			contatore_dispari++;
 		}
 
-		/*
+		
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 1) && sec % 7 == 0 && contatore_dispari == 1)
 		{
 			// avvia coccodrillo
@@ -220,14 +255,16 @@ void *drawThread (void *param){
 				coccodrillo_init.y = FILA_UNO;
 				coccodrillo_init.type = 'C';
 				coccodrillo_init.id = id;
-				//pthread_t pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
-
-				//Params_coccodrilli arg_coccodrillo = {p->semafori, p->buffer, gameData, coccodrillo_init, id};
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
+
 				
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//pthread_t pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = 1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -239,7 +276,7 @@ void *drawThread (void *param){
 			}
 		}
 		
-		
+		/**/
 
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 2) && sec % 7 == 0 && contatore_dispari == 1)
 		{
@@ -259,7 +296,10 @@ void *drawThread (void *param){
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 				
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = -1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -271,6 +311,9 @@ void *drawThread (void *param){
 			}
 		}
 
+
+		// TODO - copiare codice di avvio per tutti i coccodrilli 
+		
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 3) && sec % 7 == 0 && contatore_dispari == 1)
 		{
 
@@ -288,8 +331,12 @@ void *drawThread (void *param){
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
 				
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = 1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -303,7 +350,6 @@ void *drawThread (void *param){
 
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 5) && sec % 7 == 0 && contatore_dispari == 1)
 		{
-
 			// avvia coccodrillo
 			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
 			if (id != -1)
@@ -316,9 +362,12 @@ void *drawThread (void *param){
 				
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
-				
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = 1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -332,7 +381,6 @@ void *drawThread (void *param){
 
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 7) && sec % 7 == 0 && contatore_dispari == 1)
 		{
-
 			// avvia coccodrillo
 			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
 			if (id != -1)
@@ -347,7 +395,11 @@ void *drawThread (void *param){
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 				
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = 1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -376,7 +428,11 @@ void *drawThread (void *param){
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = -1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -406,7 +462,11 @@ void *drawThread (void *param){
 
 
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = -1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -435,7 +495,11 @@ void *drawThread (void *param){
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 				
 				//int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
-				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				
+				usleep(8000);
+				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
+				
 				gameData->contatori.contCoccodrilli++;
 				gameData->controlloCoccodrilli[id].direction = -1;
 				gameData->controlloCoccodrilli[id].id = id;
@@ -462,7 +526,15 @@ void *drawThread (void *param){
 		
 		//stampaMatrice(gameData->schermo.screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
 
-
+		#ifdef DEBUG_PROIETTILI
+		for (int i = 0; i < MAXNPROIETTILI; i++)
+		{
+			mvprintw(8, 146 + (i * 9), "%d:x:%d ", i, gameData->oldPos.proiettili[i].x);
+			mvprintw(9, 146 + (i * 9), "%d:y:%d ", i, gameData->oldPos.proiettili[i].y);
+			mvprintw(10, 146 + (i * 9), "%d:t:%c ", i, gameData->oldPos.proiettili[i].type);
+			mvprintw(11, 146 + (i * 9), "%d:h:%ld ", i, gameData->oldPos.proiettili[i].thread_id);
+		}
+		
 		mvprintw(9,106,"THREAD ID POST UPDATE");
 		mvprintw(10,106,"                                ");
 		mvprintw(10,106,"%ld",gameData->pids.pidProiettili[0]);
@@ -482,6 +554,40 @@ void *drawThread (void *param){
 		mvprintw(28,106,"                                          ");
 		mvprintw(28,106,"2: %ld %d %d",gameData->allTCB->tcb_proiettili[2].thread_id,gameData->allTCB->tcb_proiettili[2].is_target,gameData->allTCB->tcb_proiettili[2].is_terminated);
 		
+		#endif
+
+
+		#ifdef DEBUG_COCCODRILLI
+		for (int i = 0; i < 3; i++)
+		{
+			mvprintw(8, 146 + (i * 9), "%d:x:%d ", i,   gameData->oldPos.coccodrilli[i].x);
+			mvprintw(9, 146 + (i * 9), "%d:y:%d ", i,   gameData->oldPos.coccodrilli[i].y);
+			mvprintw(10, 146 + (i * 9), "%d:t:%c ", i,  gameData->oldPos.coccodrilli[i].type);
+			mvprintw(11, 146 + (i * 9), "%d:h:%ld ", i, gameData->oldPos.coccodrilli[i].thread_id);
+		}
+		
+		mvprintw(9,106,"THREAD ID POST UPDATE");
+		mvprintw(10,106,"                                ");
+		mvprintw(10,106,"%ld",gameData->pids.pidCoccodrilli[0]);
+		mvprintw(11,106,"                                ");
+		mvprintw(11,106,"%ld",gameData->pids.pidCoccodrilli[1]);
+		mvprintw(12,106,"                                ");
+		mvprintw(12,106,"%ld",gameData->pids.pidCoccodrilli[2]);
+
+		mvprintw(16,106,"                                ");
+		mvprintw(16,106,"CONT COCCODRILLI POST UPDATE: %d",gameData->contatori.contCoccodrilli);
+
+		mvprintw(25,106,"TCB PROIETTILI POST UPDATE per indice");
+		mvprintw(26,106,"                                          ");
+		mvprintw(26,106,"0: %ld %d %d",gameData->allTCB->tcb_coccodrilli[0].thread_id,gameData->allTCB->tcb_coccodrilli[0].is_target,gameData->allTCB->tcb_coccodrilli[0].is_terminated);
+		mvprintw(27,106,"                                          ");
+		mvprintw(27,106,"1: %ld %d %d",gameData->allTCB->tcb_coccodrilli[1].thread_id,gameData->allTCB->tcb_coccodrilli[1].is_target,gameData->allTCB->tcb_coccodrilli[1].is_terminated);
+		mvprintw(28,106,"                                          ");
+		mvprintw(28,106,"2: %ld %d %d",gameData->allTCB->tcb_coccodrilli[2].thread_id,gameData->allTCB->tcb_coccodrilli[2].is_target,gameData->allTCB->tcb_coccodrilli[2].is_terminated);
+		;
+		#endif
+
+		
 		//sem_wait((&arg_general)->mutex);
 		mvprintw(30,106,"                     ");
 		mvprintw(30,106,"errore gameData: %d",gameData->errore);
@@ -499,14 +605,10 @@ void *drawThread (void *param){
 		mvprintw(34,106,"                     ");
 		mvprintw(34,106,"proiettili_Nem: %2d",gameData->contatori.contProiettiliN);
 
-		for (int i = 0; i < MAXNPROIETTILI; i++)
-		{
-			mvprintw(8, 146 + (i * 9), "%d:x:%d ", i, gameData->oldPos.proiettili[i].x);
-			mvprintw(9, 146 + (i * 9), "%d:y:%d ", i, gameData->oldPos.proiettili[i].y);
-			mvprintw(10, 146 + (i * 9), "%d:t:%c ", i, gameData->oldPos.proiettili[i].type);
-			mvprintw(11, 146 + (i * 9), "%d:h:%ld ", i, gameData->oldPos.proiettili[i].thread_id);
-		}
+		mvprintw(36,106,"                     ");
+		mvprintw(36,106,"time(sec): %2d",gameData->gameInfo.tempo.secondi);
 
+		
 		fflush(stdout);
 		fflush(stdin);
 		fflush(stderr);

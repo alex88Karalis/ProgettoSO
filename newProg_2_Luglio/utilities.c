@@ -245,9 +245,15 @@ int joinThreadMorto(ThreadControlBlock* deadThread, sem_t* semaforo){
     return 1;
 }
 
-int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem) // solo RANA
+int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem)
 {
-    /* chiama la joinThreadMorto_2 per ogni thread + aggiorna/resetta pids */
+    /* chiama la joinThreadMorto per ogni thread
+        - chiama la join sul thread
+        - aggiorna/resetta pids 
+        - aggiorna contatore 
+        - cancella sprite dalla matrice
+    */
+
     ThreadControlBlock *tcb_thread = NULL;
     sem_t *semaforo_tcb = &(allSem->tcb_mutex); 
     int err ;
@@ -298,12 +304,150 @@ int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem) // solo R
              cancellaOggettoDaMatrice(gameData, nemico, gameData->oldPos.nemici, S_PIANTA);
         }
     }
+    
+    /*  COCCODRILLO */
+    ThreadControlBlock *tcb_coccodrilli = gameData->allTCB->tcb_coccodrilli;
+    for(int i=0; i<MAXNCOCCODRILLI; i++){
+        tcb_thread = &(tcb_coccodrilli[i]);
+        if(joinThreadMorto(tcb_thread, semaforo_tcb)==0){
+            gameData->pids.pidCoccodrilli[i]=0;  // ??
+            
+            PipeData *coccodrillo = &(gameData->oldPos.coccodrilli[i]);
+            switch (coccodrillo->type)
+            {
+            case 'C':
+            /* code */
+                cancellaOggettoDaMatrice(gameData, coccodrillo, gameData->oldPos.coccodrilli, S_COCCODRILLO_DX_C);
+                break;
+            case 'c':
+            /* code */
+                cancellaOggettoDaMatrice(gameData, coccodrillo, gameData->oldPos.coccodrilli, S_COCCODRILLO_SX_C);
+                break;
+            default:
+                break;
+            }
+            gameData->contatori.contCoccodrilli = (gameData->contatori.contCoccodrilli -1)%MAXNCOCCODRILLI;
+        }
+    }
+
+
+    /*  TEMPO   */
+    ThreadControlBlock * tcb_tempo = &(gameData->allTCB->tcb_tempo);
+    if(joinThreadMorto(tcb_tempo, semaforo_tcb)==0){
+        
+        //avviaTempoThread();   come resettare la manche ??
+
+        beep();
+    }
+
 
 
     return -1;
 }
 
 
+/** Imposta tutti i thread a target=true */
+void terminaTuttiThread(GameData* gameData , struct Semaphore* allSem){
+    ThreadControlBlock *tcb_thread = NULL;
+    sem_t *semaforoTCB = &(allSem->tcb_mutex); 
+
+    /*  RANA    */
+    tcb_thread = gameData->allTCB->tcb_rana;
+    impostaThreadTarget(tcb_thread, semaforoTCB);
+
+    /* PROIETTILI */
+    tcb_thread = gameData->allTCB->tcb_proiettili;
+    for(int i=0; i< MAXNPROIETTILI; i++){
+        impostaThreadTarget( &(tcb_thread[i]), semaforoTCB);
+    }
+
+    /*  NEMICO_PIANTA   */
+    tcb_thread = gameData->allTCB->tcb_piante;
+    for(int i=0; i< MAXNNEMICI; i++){
+        impostaThreadTarget( &(tcb_thread[i]), semaforoTCB);
+    }
+
+    /* PROIETTILI NEMICI */
+    tcb_thread = gameData->allTCB->tcb_proiettili_nemici;
+    for(int i=0; i< MAXNPROIETTILINEMICI; i++){
+        impostaThreadTarget( &(tcb_thread[i]), semaforoTCB);
+    }
+
+    /* COCOCDRILLI  */
+    tcb_thread = gameData->allTCB->tcb_coccodrilli;
+    for(int i=0; i< MAXNCOCCODRILLI; i++){
+        impostaThreadTarget( &(tcb_thread[i]), semaforoTCB);
+    }
+
+}
+
+
+/**
+ * Resetta la manche. Chiude tutti i thread e riavvia Disegna
+ */
+//void resetManche(GameData *gameData, struct Semaphore* allSem)
+void resetManche(Params *p)
+{
+    GameData *gameData = p->gameData;
+    struct Semaphore* allSem = p->semafori;
+    // conta i thread attivi al momento (eccetto Disegna,Tempo) (+1 per la Rana)
+    int thread_attivi = 1 + gameData->contatori.contCoccodrilli + gameData->contatori.contNemici + gameData->contatori.contProiettili + gameData->contatori.contProiettiliN;
+    
+    terminaTuttiThread(gameData, allSem);  
+
+    /*  come sapere se tutti i thread sono terminati ?? */
+    /* ciclare finchè non sono usciti tutti ?           */
+    PipeData *readed;
+    while(thread_attivi > 0) // legge le ultime scritture dei thread in chiusura
+    {
+        leggiDaBuffer(p, readed);
+        usleep(1000);
+
+        thread_attivi--;
+    }
+    // tutti i thread attivi dovrebbero aver terminato
+    
+
+    /* per ogni vettore fai la join sui thread terminati */
+    ThreadControlBlock *thread_tcb;
+    sem_t *semaforoTCB = &allSem->tcb_mutex;
+   
+    /* RANA */
+    thread_tcb = gameData->allTCB->tcb_rana;
+    if(joinThreadMorto(thread_tcb, semaforoTCB) == 0)   // il thread è stato terminato correttamente
+    {  }
+
+
+   /*   PROIETTILI  */
+    for(int i=0; i<MAXNPROIETTILI;i++){
+        thread_tcb = &(gameData->allTCB->tcb_proiettili);
+        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0)   // il thread è stato terminato correttamente
+        {  }
+    }
+
+    /*   PROIETTILI NEMICI  */
+    for(int i=0; i<MAXNPROIETTILINEMICI;i++){
+        thread_tcb = &(gameData->allTCB->tcb_proiettili_nemici);
+        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        }
+    }
+
+    /*    NEMICI  */
+    for(int i=0; i<MAXNNEMICI;i++){
+        thread_tcb = &(gameData->allTCB->tcb_piante);
+        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        }
+    }
+
+    /*   COCCODRILLI  */
+    for(int i=0; i<MAXNCOCCODRILLI;i++){
+        thread_tcb = &(gameData->allTCB->tcb_coccodrilli);
+        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        }
+    }
+
+
+}
 
 
 

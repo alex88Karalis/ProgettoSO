@@ -88,11 +88,12 @@ void *tempoThread(void* param){
 
 	struct timeval start, end;
 	long millisec;
+	int sec;
 	gettimeofday(&start, NULL);
 
     gettimeofday(&end, NULL);
 	millisec = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
-
+	sec = (end.tv_sec - start.tv_sec);
     // inizializzazione pipeData per comunicazione
 	PipeData pipeData;
 	// coordinate relative iniziali nulle
@@ -109,8 +110,12 @@ void *tempoThread(void* param){
 		}
 		usleep(80000);
 		gettimeofday(&end, NULL);
-	    millisec = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
-        pipeData.x=(int)millisec;
+	    //millisec = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
+		//pipeData.x=(int)millisec;
+		
+		sec = (end.tv_sec - start.tv_sec);
+		pipeData.x=(int)sec;
+        
 		scriviSuBuffer(p, pipeData, tcb_tempo, false);
 	}
 	// ultima scrittura di TEMPO

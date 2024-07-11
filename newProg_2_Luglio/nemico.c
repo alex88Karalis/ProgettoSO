@@ -92,7 +92,7 @@ void killNemico(pid_t pid_nemico)
 pthread_t avviaNemicoThread(Params *thread_args, int id){
 	pthread_t tid_nemico;
 	thread_args->id = id; //Passo l'id valido del nemico agli argomenti del thread
-
+	
 	if( pthread_create(&tid_nemico, NULL, &nemicoThread, (void*)thread_args) != 0){
 		perror("ERR: Avvio Nemico Fallito!");
 		_exit(3);
@@ -138,6 +138,9 @@ void* nemicoThread(void *param){
 	nemico.id = p->id; // l'ID specifico del nemico
 	nemico.thread_id = pthread_self();
 	
+	int randNaps = rand()%5 * (p->id);
+	usleep(1000* randNaps);
+
 	// Scrive sul buffer i dati di nemico
 	scriviSuBuffer(p,nemico,my_tcb,false);
 
