@@ -1,4 +1,5 @@
 #include "disegna.h"
+#include "coccodrillo.h"
 
 #define DEBUG
 //#define FAKE_RANA
@@ -60,9 +61,13 @@ void* fakeRana(void *param )
 	pthread_exit(NULL);
 }
 
+void avviaNemiciThread(Params* thread_param, int* countdown);
 
 
 void *drawThread (void *param){
+
+	
+
 	Params* p = (Params* ) param;
 	
 	pthread_t tidRana = 123;
@@ -96,7 +101,9 @@ void *drawThread (void *param){
 	stampaRefreshMatrice(gameData->schermo.screenMatrix);
 	sem_post(&p->semafori->window_mutex);
 
-	int countdown_piante = 0;
+	//int power_naps_piante = rand()%(100);
+	
+	int countdown_piante = rand()%(100);	// = 0
 	int sec;
 	int contatore_pari = 0;
 	int contatore_dispari = 0;
@@ -221,7 +228,11 @@ void *drawThread (void *param){
 
 		//--------------AVVIO NEMICI / PIANTE ------------------
 		// TODO - aggiustare cancellazione piante 
+		
+		//avviaNemiciThread(p, countdown_piante);
 
+		/*
+		/** */
 		if(gameData->contatori.contNemici < MAXNNEMICI-1 && countdown_piante==0 ){
 			
 			
@@ -234,11 +245,14 @@ void *drawThread (void *param){
 				gameData->pids.pidNemici[nemicoID] = nemico;
 				//gameData->contatori.contNemici++;
 				gameData->contatori.contNemici = (gameData->contatori.contNemici +1) % (MAXNNEMICI+1);
-
+				
+				countdown_piante = rand()%100;
+				//power_naps_piante = rand()%1000;
 			}
 		}
-		countdown_piante = (countdown_piante+1) %100;
-		
+		countdown_piante = (countdown_piante > 0) ? countdown_piante-1 : rand()%100; 
+
+		/**/
 		//----------------- AVVIO COCCODRILLI ------------------
 
 		sec = gameData->gameInfo.tempo.secondi;
@@ -257,29 +271,28 @@ void *drawThread (void *param){
 		}
 
 		
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 1) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 1) && sec % TEMPO_SPAWN_COCCODRILLI == 0 == 0 && contatore_dispari == 1)
 		{
 			// avvia coccodrillo
 			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = FIRSTGAMECOL - 9;
+				coccodrillo_init.x = gameData->flussi[0].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_UNO;
-				coccodrillo_init.type = 'C';
+				coccodrillo_init.type = gameData->flussi[0].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 
-				
 				//pthread_t pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), id);
 				//gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
 				usleep(8000);
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = 1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[0].direction;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -291,7 +304,7 @@ void *drawThread (void *param){
 		
 		/**/
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 2) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 2) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 
 			// avvia coccodrillo
@@ -299,11 +312,10 @@ void *drawThread (void *param){
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = LASTGAMECOL;
+				coccodrillo_init.x = gameData->flussi[1].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_DUE;
-				coccodrillo_init.type = 'c';
+				coccodrillo_init.type = gameData->flussi[1].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
-
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
@@ -314,7 +326,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = -1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[1].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -324,7 +336,7 @@ void *drawThread (void *param){
 			}
 		}
 		
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 3) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 3) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 
 			// avvia coccodrillo
@@ -332,9 +344,9 @@ void *drawThread (void *param){
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = FIRSTGAMECOL - 9;
+				coccodrillo_init.x = gameData->flussi[2].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_TRE;
-				coccodrillo_init.type = 'C';
+				coccodrillo_init.type = gameData->flussi[2].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
@@ -348,7 +360,7 @@ void *drawThread (void *param){
 
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = 1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[2].direction;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -358,16 +370,16 @@ void *drawThread (void *param){
 			}
 		}
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 5) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 5) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 			// avvia coccodrillo
 			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = FIRSTGAMECOL - 9;
+				coccodrillo_init.x = gameData->flussi[4].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_CINQUE;
-				coccodrillo_init.type = 'C';
+				coccodrillo_init.type = gameData->flussi[4].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 				
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
@@ -379,7 +391,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = 1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[4].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -389,16 +401,16 @@ void *drawThread (void *param){
 			}
 		}
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 7) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 7) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 			// avvia coccodrillo
 			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = FIRSTGAMECOL - 9;
+				coccodrillo_init.x = gameData->flussi[6].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_SETTE;
-				coccodrillo_init.type = 'C';
+				coccodrillo_init.type = gameData->flussi[6].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 				
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
@@ -411,7 +423,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = 1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[6].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -421,7 +433,7 @@ void *drawThread (void *param){
 			}
 		}
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 8) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 8) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 
 			// avvia coccodrillo
@@ -429,9 +441,9 @@ void *drawThread (void *param){
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = LASTGAMECOL;
+				coccodrillo_init.x = gameData->flussi[7].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_OTTO;
-				coccodrillo_init.type = 'c';
+				coccodrillo_init.type =  gameData->flussi[7].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
@@ -444,7 +456,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = -1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[7].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -454,7 +466,7 @@ void *drawThread (void *param){
 			}
 		}
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 6) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 6) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 
 			// avvia coccodrillo
@@ -462,9 +474,9 @@ void *drawThread (void *param){
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = LASTGAMECOL;
+				coccodrillo_init.x = gameData->flussi[5].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_SEI;
-				coccodrillo_init.type = 'c';
+				coccodrillo_init.type = gameData->flussi[5].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
 
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
@@ -478,7 +490,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = -1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[5].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -488,7 +500,7 @@ void *drawThread (void *param){
 			}
 		}
 
-		if (thereIsSpaceForCoccodrilloOnFila(gameData, 4) && sec % 7 == 0 && contatore_dispari == 1)
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, 4) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
 		{
 
 			// avvia coccodrillo
@@ -496,11 +508,11 @@ void *drawThread (void *param){
 			if (id != -1)
 			{
 				PipeData coccodrillo_init;
-				coccodrillo_init.x = LASTGAMECOL;
+				coccodrillo_init.x = gameData->flussi[3].direction==1 ? FIRSTGAMECOL - 9 : LASTGAMECOL;
 				coccodrillo_init.y = FILA_QUATTRO;
-				coccodrillo_init.type = 'c';
+				coccodrillo_init.type = gameData->flussi[3].direction==1 ? 'C' : 'c';
 				coccodrillo_init.id = id;
-				
+
 				Params_coccodrilli arg_coccodrillo = {p, coccodrillo_init};
 				pthread_t pid_coccodrillo = avviaCoccodrilloThread( &(arg_coccodrillo), id);
 				
@@ -511,7 +523,7 @@ void *drawThread (void *param){
 				gameData->pids.pidCoccodrilli[id] = leggiTid(&(gameData->allTCB->tcb_coccodrilli[id]),&(p->semafori->tcb_mutex));
 				
 				gameData->contatori.contCoccodrilli++;
-				gameData->controlloCoccodrilli[id].direction = -1;
+				gameData->controlloCoccodrilli[id].direction = gameData->flussi[3].direction;;
 				gameData->controlloCoccodrilli[id].id = id;
 				gameData->controlloCoccodrilli[id].offset_deep = 0;
 				gameData->controlloCoccodrilli[id].is_buono = false;
@@ -658,7 +670,45 @@ pthread_t avviaDrawThread(Params *thread_args){
 	return tid_draw;
 }
 
+void avviaNemiciThread(Params* thread_param, int* countdown)
+{
+	//--------------AVVIO NEMICI / PIANTE ------------------
+	//int countdown_piante = *(countdown);
 
+	GameData *gameData = thread_param->gameData;
+	/*
+	for(int i=0; i<MAXNNEMICI;i++){
+		int id = id_disponibile(gameData->pids.pidNemici,MAXNNEMICI);
+		if(id!=-1){
+			pthread_t nemico = avviaNemicoThread(thread_param, id);
+			gameData->pids.pidNemici[id] = nemico;
+			//gameData->contatori.contNemici++;
+			gameData->contatori.contNemici = (gameData->contatori.contNemici +1) % (MAXNNEMICI+1);
+			//gameData->pids.pidNemici[id]=avviaNemico(gameData->pipe,id);
+		}
+	}
+	/**/
+
+	if(gameData->contatori.contNemici < MAXNNEMICI-1 && *countdown ==0 ){
+			
+		int nemicoID = rand()%MAXNNEMICI;
+		//int nemicoID = id_disponibile(p->gameData->pids.pidNemici,MAXNNEMICI);
+		
+		if(nemicoID >= 0 && (gameData->pids.pidNemici[nemicoID]==0)){
+		//if(nemicoID >= 0){
+			pthread_t nemico = avviaNemicoThread(thread_param, nemicoID);
+			gameData->pids.pidNemici[nemicoID] = nemico;
+			//gameData->contatori.contNemici++;
+			gameData->contatori.contNemici = (gameData->contatori.contNemici +1) % (MAXNNEMICI+1);
+			
+			*countdown = rand()%100;
+			//power_naps_piante = rand()%1000;
+		}
+	}
+	*countdown = (*countdown > 0) ? (*countdown-1) : rand()%100; // se >0 decrementa, altrimenti reimposta valore
+	//*(countdown) = countdown_piante;	// assegna il nuovo valore a countdown 
+	/**/
+}// end avviaNemiciThread
 
 void stampaWin(){
 	clear();

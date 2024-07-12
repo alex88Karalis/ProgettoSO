@@ -25,6 +25,12 @@
 // velocità di aggiornamento
 #define SUPERFAST 20000 // la velocita di aggiornamento piu veloce
 
+// velocità flussi 
+#define FLUSSO_LENTO 220000
+#define FLUSSO_NORM 170000
+#define FLUSSO_VELOCE 140000
+
+
 // dimensioni totali schermo
 #define WIDTH 105 // larghezza massima dello schermo
 #define HEIGHT 40 // altezza massima dello schermo
@@ -153,6 +159,8 @@
 #define TEMPOLVL1 60 // numero di secondi per manche per il primo livello
 #define TEMPOLVL2 90 // numero di secondi per manche per il secondo livello
 #define TEMPOLVL3 120 // numero di secondi per manche per il terzo livello
+
+#define TEMPO_SPAWN_COCCODRILLI 3 // tempo di spawn dei coccodrilli
 
 // altro
 #define DISTTRATANE 22 // distanza tra una tana e l'altra
@@ -448,6 +456,10 @@ typedef struct{
 }CocodrileControl;
 
 
+typedef struct{
+	int direction;
+	int vel;
+}Flusso;
 
 // struttura dati generale del gioco, contiene tutti i dati significativi per la gestione
 // - pipe : il file descriptor della pipe
@@ -476,6 +488,7 @@ typedef struct{
 	OldPos oldPos; // dati oggetti al passo precedente
 	AllTCB *allTCB;
 	CocodrileControl controlloCoccodrilli[MAXNCOCCODRILLI]; // dati per oggetti coccodrilli
+	Flusso flussi[8];
 	int errore;
 }GameData;
 

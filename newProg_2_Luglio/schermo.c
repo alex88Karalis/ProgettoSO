@@ -305,9 +305,7 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 		{
 			if (gameData->pipeData.y <= FULLTANAROWEND) // è usicto dall'area di gioco
 			{
-
 				PipeData proiettile = (PipeData)(gameData->pipeData);
-				// ThreadControlBlock* ptrTCB = cercaThreadByTid(gameData->allTCB->tcb_proiettili, proiettile.thread_id, &thread_arg->semafori->tcb_mutex,MAXNPROIETTILI);
 				ThreadControlBlock *ptrTCB = &(gameData->allTCB->tcb_proiettili[proiettile.id]);
 
 				if (!isThreadValid(ptrTCB, &thread_arg->semafori->tcb_mutex))
@@ -315,15 +313,8 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 					perror("TCB MISSING");
 					break;
 				}
-				else
-				{
-					// perror("TCB OK");
-				}
-				if (isThreadTarget(ptrTCB, &thread_arg->semafori->tcb_mutex))
-				{ // se il proiettile è già "target", esci.
-					// perror("Proiettile già impostato!");
-					break;
-				}
+				
+				if (isThreadTarget(ptrTCB, &thread_arg->semafori->tcb_mutex)) { break; }// se il proiettile è già "target", esci.
 
 				int err;
 				err = impostaThreadTarget(ptrTCB, &thread_arg->semafori->tcb_mutex);
@@ -337,9 +328,6 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 						perror("TCB Target NULLO");
 				}
 
-				gameData->gameInfo.punteggio++;
-				gameData->gameInfo.punteggioIsChanged = true;
-				// beep();
 			}
 			else // il proiettile è in campo
 			{
@@ -766,6 +754,20 @@ void handleCoccodrilloMovement(GameData *gameData)
 						gameData->ranaAbsPos.x = rana.x;
 						gameData->ranaAbsPos.y = rana.y;
 						stampaSpriteInMatrice(&(rana), &(gameData->sprites[S_RANA]), gameData);
+
+						// se la rana esce fuori dallo schermo allora muore
+						if (gameData->ranaAbsPos.x >= LASTGAMECOL - 1 || gameData->ranaAbsPos.x < FIRSTGAMECOL)
+						{
+							// uccido la rana
+							// tolgo una vita alla rana
+							gameData->gameInfo.vite--;
+							// faccio ripartire la rana
+							
+							resetRana(gameData);
+							gameData->ranaAbsPos.on_coccodrillo = false;
+							gameData->ranaAbsPos.id_coccodrillo = -1;
+							aggiornaOggetto(gameData, &(gameData->oldPos.rana), S_RANA);
+						}
 					}
 
 				}

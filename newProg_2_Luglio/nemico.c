@@ -110,6 +110,8 @@ void* nemicoThread(void *param){
 	ThreadControlBlock *my_tcb = &p->gameData->allTCB->tcb_piante[p->id];
 	int initialX = 0;
 
+	// Seme unico per ogni processo
+    unsigned int seed = time(NULL) ^ (pthread_self() << 16); 
 	// switch su id in modo da asseganre coordinate iniziali
 	switch (p->id)
 	{
@@ -138,10 +140,15 @@ void* nemicoThread(void *param){
 	nemico.id = p->id; // l'ID specifico del nemico
 	nemico.thread_id = pthread_self();
 	
-	int randNaps = rand()%5 * (p->id);
-	usleep(1000* randNaps);
-
-	// Scrive sul buffer i dati di nemico
+	//int randNaps = rand()%5 * (p->id);
+	//usleep(1000* randNaps);
+	/*
+	// numero randomico tra min e max compresi
+	int randomico = generaRandom_r(600000 , 600000*25,&seed);
+	// piccola usleep
+	usleep(randomico);
+	/**/
+	// Prima scrittura sul buffer 
 	scriviSuBuffer(p,nemico,my_tcb,false);
 
 	// cambio tipo d'ora in poi lancerà soltanto proiettili
@@ -154,9 +161,21 @@ void* nemicoThread(void *param){
 		if(!(isThreadTarget(my_tcb, &p->semafori->tcb_mutex)))
 		{	// se il thread NON deve terminare, dice a Disegna di sparare un proiettile
 			if (contatore % 100 == 0)
-			{
-				nemico.type = 's';
+			{	
+				/*
+				if(nemico.x-initialX>=3){
+					nemico.x=initialX;
+				}
+				if(nemico.x-initialX==1){
+					nemico.y = ARGINEROWSTART + 2;
+				}
+				else{
+					nemico.y= ARGINEROWSTART + 1;
+				}
+				/**/
+				//nemico.type = 's';
 				scriviSuBuffer(p,nemico,my_tcb,false);
+				//nemico.x++;
 			}
 			
 			contatore = (contatore + 1) % 50;

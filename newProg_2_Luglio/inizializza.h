@@ -12,6 +12,8 @@ void inizializzaGameInfo(GameData* gamedata);
 
 void inizializzaControlloCoccodrilli(GameData* gameData);
 
+void inizializzaFlussi(GameData* gameData);
+
 /***/
 void inizializzaContatori(GameData* gameData);
 

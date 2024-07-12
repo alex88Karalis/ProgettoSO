@@ -125,16 +125,39 @@ void *coccodrilloThread(void *param){
     PipeData coccodrillo_init = p_coccodrillo->coccodrillo_init; // recupero coordinate iniziali
 
     PipeData coccodrillo;
-    coccodrillo.x = coccodrillo_init.x; // le coordinate iniziali del coccodrillo sono quelle dell' oggetto che ha sparato
+    coccodrillo.x = coccodrillo_init.x; // le coordinate iniziali del coccodrillo
     coccodrillo.y = coccodrillo_init.y;
     coccodrillo.type = coccodrillo_init.type;
     coccodrillo.id = p->id;
     coccodrillo.thread_id = my_tid;
-    int dirX = 1;
+    //int dirX = 1;
+
+    int direction, vel; // direzione e velocità passati al processo dall'esterno, come fare??
+    direction = p->gameData->flussi[(p->id)-1].direction;
+    vel = p->gameData->flussi[(p->id)-1].vel;
+    
+    //direction = (coccodrillo_init.x > 0) ? -1 : 1 ; // se init.x>0 vai a sinistra, se init.x<0 vai a destra
+    //vel = rand()%3;
+    
+    int dirX = direction;
+    int velocity;
+
+    switch(vel){
+        case 0:
+        velocity = FLUSSO_LENTO;
+        break;
+        case 1:
+        velocity =FLUSSO_NORM;
+        break;
+        case 2:
+        velocity= FLUSSO_VELOCE;
+        break;
+    }
 
     // Seme unico per ogni processo
     unsigned int seed = time(NULL) ^ (pthread_self() << 16); 
     // la direzione deve essere calcolata in base alla y iniziale
+/*
     switch (coccodrillo_init.y)
     {
     case FILA_UNO:
@@ -154,6 +177,7 @@ void *coccodrilloThread(void *param){
     default:
         break;
     }
+/**/
 
     // numero randomico tra min e max compresi
     int randomico = generaRandom_r(0 , 200000*15,&seed);
@@ -168,10 +192,16 @@ void *coccodrilloThread(void *param){
         coccodrillo.x += dirX;
         scriviSuBuffer(p, coccodrillo, coccodrilloTCB, false);
         
-        usleep(200000); // Aspetta un po' prima di generare nuove coordinate
+        usleep(velocity); // Aspetta un po' prima di generare nuove coordinate
     }
     
     scriviSuBuffer(p, coccodrillo, coccodrilloTCB, true);
+    /*  DA PROVARE
+    my_tcb.thread_id = pthread_self();
+    my_tcb.is_target = true;
+    my_tcb.is_terminated = true; 
+    scriviSuTCB(p,coccodrilloTCB, my_tcb);
+    /**/
    
     pthread_exit(NULL);
 }// end coccodrilloThread
