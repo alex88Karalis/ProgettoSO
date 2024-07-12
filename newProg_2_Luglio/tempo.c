@@ -1,4 +1,5 @@
 #include "tempo.h"
+#include <sys/time.h> // in più??
 
 /* --------     PROCESSI      ----------  */
 
@@ -113,7 +114,9 @@ void *tempoThread(void* param){
 	    //millisec = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000;
 		//pipeData.x=(int)millisec;
 		
-		sec = (end.tv_sec - start.tv_sec);
+		//sec = (end.tv_sec - start.tv_sec);
+		sec = (int)difftime(end.tv_sec, start.tv_sec);
+
 		pipeData.x=(int)sec;
         
 		scriviSuBuffer(p, pipeData, tcb_tempo, false);

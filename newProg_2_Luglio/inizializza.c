@@ -220,7 +220,7 @@ void inizializzaTane(GameData* gameData){
 			for(int col = start_col; col < TANA_W + start_col; col++){
 				// generazione random dello sprite della tana
 				int r=rand()%1000;
-				gameData->schermo.screenMatrix[row][col].ch = (r%3==0) ? '`' : ';';
+				gameData->schermo.screenMatrix[row][col].ch = (r%2==0) ? '`' : ';';
 				gameData->schermo.screenMatrix[row][col].color = TANE_COL;
 				gameData->schermo.screenMatrix[row][col].tipo = TANA_OPEN_OBJ;
 				gameData->schermo.screenMatrix[row][col].id=id;
@@ -265,7 +265,11 @@ void inizializzaArgine(ScreenCell (*screenMatrix)[WIDTH]){
 	char carattere=' ';
 	for(int i = ARGINEROWSTART; i <= ARGINEROWEND; i++){
 		for(int j = FIRSTGAMECOL; j <= LASTGAMECOL; j++){
-			screenMatrix[i][j].ch = carattere;
+			
+			int n_rand=rand()%1000;	// genera numero random
+			screenMatrix[i][j].ch = (n_rand%7==0) ? ';': ' ';
+
+			//screenMatrix[i][j].ch = carattere;
 			screenMatrix[i][j].color = ARGINE_COL;
 			screenMatrix[i][j].tipo = ARGINE_OBJ;
 			screenMatrix[i][j].id = 0;

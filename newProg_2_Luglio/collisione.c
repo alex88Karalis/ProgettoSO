@@ -83,13 +83,11 @@ Collisione detectCollisione(GameData* gameData){
                             break;
 
                         case PROIETTILE_NEMICO_OBJ:
-                            /* Rileva la collisione della Rana che passa sul proiettileNemico rimasto a terra
-                                - possibile implemento per una feature aggiuntiva al gameplay
                             
                             collisione.tipoCollisione=PROIETTILE_NEMICO_RANA;
                             collisione.id_oggetto_attivo=gameData->pipeData.id;
                             collisione.oggetto_attivo= RANA_OBJ;
-                            collisione.oggetto_passivo=PN_OBJ;
+                            collisione.oggetto_passivo=PROIETTILE_NEMICO_OBJ;
                             collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
                             return collisione;
                             /**/
@@ -305,40 +303,85 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
 
         case PROIETTILE_NEMICO_RANA: // Proiettile_Nemico ha colpito la Rana OK
         {
-            /* Far terminare la Rana, Far terminare il Proiettile_Nemico */
-            //ThreadControlBlock *tcb_proiettileNemico = cercaThreadByTid(gameData->allTCB->tcb_proiettili_nemici, proiettile.thread_id, &semafori->tcb_mutex, MAXNPROIETTILINEMICI);
-            
-            PipeData proiettile = gameData->pipeData;
-            ThreadControlBlock *tcb_proiettileNemico = &(gameData->allTCB->tcb_proiettili_nemici[proiettile.id]);
-            ThreadControlBlock *tcb_rana =  gameData->allTCB->tcb_rana;
 
-            if(isThreadTarget(tcb_proiettileNemico,&semafori->tcb_mutex)){ break; }
-            if(isThreadTarget(tcb_rana,&semafori->tcb_mutex)){break;}
-
-            if(impostaThreadTarget(tcb_proiettileNemico,&semafori->tcb_mutex)!=0) // fa terminare il proiettile nemico
-            {   
-                perror("ERRORE imposta thread Target");
-                break;
-            }else{
-                beep();
-            }
-
-            if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
+            if (collisione.oggetto_attivo == RANA_OBJ)  // oggetto attivo = RANA
             {
-                perror("ERR: Imposta Rana Target Fallito");
-                break;
-            }else{
-                if(gameData->gameInfo.vite>0 ){ // decremento vite
-			        gameData->gameInfo.vite--;
-                    gameData->gameInfo.viteIsChanged = true;
-                }   
+                ThreadControlBlock *tcb_rana =  gameData->allTCB->tcb_rana;
+                ThreadControlBlock *tcb_proiettileNemico = &(gameData->allTCB->tcb_proiettili_nemici[collisione.id_oggetto_passivo]);
+                pthread_t tid_rana = leggiTid(tcb_rana, semaforoTCB);
+                pthread_t tid_proiettileNemico = leggiTid(tcb_proiettileNemico, semaforoTCB);
+                
+                if(tid_rana == 0){break;}
+                if(tid_proiettileNemico == 0){break;}
+                
+                if(isThreadTarget(tcb_proiettileNemico, semaforoTCB)){ break; }
+                if(isThreadTarget(tcb_rana, semaforoTCB)){ break;}
+                if(impostaThreadTarget(tcb_proiettileNemico,&semafori->tcb_mutex)!=0) // fa terminare il proiettile nemico
+                {   
+                    perror("ERRORE imposta thread Target");
+                    break;
+                }else{
+                    beep();
+                }
+
+                if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
+                {
+                    perror("ERR: Imposta Rana Target Fallito");
+                    break;
+                }else{
+                    if(gameData->gameInfo.vite>0 ){ // decremento vite
+                        gameData->gameInfo.vite--;
+                        gameData->gameInfo.viteIsChanged = true;
+                        gameData->gameInfo.manche--;
+                        gameData->gameInfo.mancheIsChanged = true;
+                    }   
+                }
+
+            }
+            else    // oggetto attivo = PRoiettile_Nemico
+            {  
+                /* Far terminare la Rana, Far terminare il Proiettile_Nemico */
+                
+                ThreadControlBlock *tcb_proiettileNemico = &(gameData->allTCB->tcb_proiettili_nemici[collisione.id_oggetto_attivo]);
+                ThreadControlBlock *tcb_rana =  gameData->allTCB->tcb_rana;
+                
+                pthread_t tid_rana = leggiTid(tcb_rana, semaforoTCB);
+                pthread_t tid_proiettileNemico = leggiTid(tcb_proiettileNemico, semaforoTCB);
+                // hai letto dei thread gia chiusi 
+                if(tid_rana == 0){break;}
+                if(tid_proiettileNemico == 0){break;}
+
+                if(isThreadTarget(tcb_proiettileNemico,&semafori->tcb_mutex)){ break; }
+                if(isThreadTarget(tcb_rana,&semafori->tcb_mutex)){break;}
+
+                if(impostaThreadTarget(tcb_proiettileNemico,&semafori->tcb_mutex)!=0) // fa terminare il proiettile nemico
+                {   
+                    perror("ERRORE imposta thread Target");
+                    break;
+                }else{
+                    beep();
+                }
+
+                if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
+                {
+                    perror("ERR: Imposta Rana Target Fallito");
+                    break;
+                }else{
+                    cancellaOggettoDaMatrice(gameData, &gameData->oldPos.rana , &gameData->oldPos.rana, S_RANA);
+
+                    if(gameData->gameInfo.vite>0 ){ // decremento vite
+                        gameData->gameInfo.vite--;
+                        gameData->gameInfo.viteIsChanged = true;
+                    }
+                    /**/   
+                }
             }
 
             break;
         }
         case PROIETTILE_RANA_NEMICO: // Proiettile_Rana ha colpito il Nemico
         {
-            beep();
+            //beep();
             /* Il proiettile è l'oggetto attivo , il nemico_pianta è l'oggetto passivo della collisione */
             //PipeData proiettile = gameData->pipeData;
 
@@ -346,16 +389,18 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
             {
                 perror("ID proiettileRana non coincide");
             }
-            //PipeData *nemico = &(gameData->oldPos.nemici[collisione.id_oggetto_passivo]);
             ThreadControlBlock *tcb_nemico = &(gameData->allTCB->tcb_piante[collisione.id_oggetto_passivo]);
-            //ThreadControlBlock *tcb_proiettile = &(gameData->allTCB->tcb_proiettili[proiettile.id]); 
             ThreadControlBlock *tcb_proiettile = &(gameData->allTCB->tcb_proiettili[collisione.id_oggetto_attivo]); 
 
             /* controlli di routine , evitano doppie collisioni */
-            if(isThreadTarget(tcb_nemico,&(semafori->tcb_mutex))){ break; }
+            if(isThreadTarget(tcb_nemico,&(semafori->tcb_mutex))){ 
+                PipeData *nemico = &(gameData->oldPos.nemici[collisione.id_oggetto_passivo]);
+                cancellaOggettoDaMatrice( gameData, nemico, gameData->oldPos.nemici, S_PIANTA);
+                break; 
+            }
             if(isThreadTarget(tcb_proiettile,&(semafori->tcb_mutex)))
             {   //?? 
-                cancellaOggettoDaMatrice(gameData,&(gameData->oldPos.proiettili[collisione.id_oggetto_attivo]),gameData->oldPos.proiettili,S_PROIETTILE);
+                //cancellaOggettoDaMatrice(gameData,&(gameData->oldPos.proiettili[collisione.id_oggetto_attivo]),gameData->oldPos.proiettili,S_PROIETTILE);
                 break; 
             }
 
@@ -370,6 +415,8 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
                 perror("ERRORE imposta thread Target");
                 break;
             }
+
+            //gameData->gameInfo.mancheIsChanged=true;
 
             gameData->gameInfo.punteggio+=5;
             gameData->gameInfo.punteggioIsChanged=true;

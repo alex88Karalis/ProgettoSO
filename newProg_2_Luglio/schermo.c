@@ -180,7 +180,7 @@ void cancellaOggetto(GameData *gameData, PipeData *old_pos, TipoSprite tipoSprit
 		datiVecchi->x = 0;
 		datiVecchi->y = 0;
 		datiVecchi->type = ' ';
-		// datiVecchi->id = id;
+		//datiVecchi->id = id;
 		datiVecchi->id = 0;
 		datiVecchi->thread_id = 0;
 	}
@@ -351,7 +351,13 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 	}
 	case 'n': // nemico-pianta
 	{
+		ThreadControlBlock *tcb_nemico = &(gameData->allTCB->tcb_piante[gameData->pipeData.id]);
 
+		pthread_t tid_nemico = leggiTid(tcb_nemico, semaforoTCB);
+		if(tid_nemico == 0) // il thread è gia stato chiuso
+		{
+			cancellaOggetto(gameData, gameData->oldPos.nemici, S_PIANTA);
+		} 
 		if (isThreadTerminated(&gameData->allTCB->tcb_piante[gameData->pipeData.id], semaforoTCB)) // ultima scrittura di Nemico
 		{
 			cancellaOggetto(gameData, gameData->oldPos.nemici, S_PIANTA);
@@ -503,7 +509,6 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 		if(tid_tempo == 0){	break;	}
 		if(isThreadTarget(&gameData->allTCB->tcb_tempo, semaforoTCB)){	break; }
 		
-		
 		int maxSeconds = 0; // nuermo massimo di secondi per manche a seconda del livello
 		switch (gameData->gameInfo.livello)
 		{
@@ -520,29 +525,25 @@ void normalUpdate(Params *thread_arg, GameData *gameData)
 			break;
 		}
 
-		if(gameData->gameInfo.tempo.secondi >= maxSeconds) //tempo scaduto RESETTA LA MANCHE
+		if( (gameData->gameInfo.tempo.secondi % maxSeconds) == 0 && (gameData->gameInfo.tempo.secondi >0)) //tempo scaduto RESETTA LA MANCHE
 		{
-			// resetta la manche
-
+			gameData->gameInfo.tempo.start = time(NULL);	//resetta tempo
+	
+			// resetta la manche			
 			gameData->gameInfo.manche--;
 			gameData->gameInfo.mancheIsChanged=true;
 			gameData->gameInfo.vite--;
 			gameData->gameInfo.viteIsChanged = true;
 
-			//impostaThreadTarget(gameData->allTCB->tcb_rana, semaforoTCB);	// termino la Rana
-			impostaThreadTarget( &gameData->allTCB->tcb_tempo, semaforoTCB);// termino il Tempo
-			gameData->gameInfo.tempo.secondi = 0;
+			impostaThreadTarget(gameData->allTCB->tcb_rana, semaforoTCB);	// termino la Rana
 			
-			//resetManche(thread_arg);
+			//resetManche(thread_arg);	
 			terminaTuttiThread( gameData, thread_arg->semafori);
 
-			//gameData->gameInfo.vite == 0;
-			
-			//isGameOver(gameData); ??
 		}
 		else
 		{
-			gameData->gameInfo.tempo.secondi = gameData->pipeData.x;
+			//gameData->gameInfo.tempo.secondi = (gameData->pipeData.x % 10);
 		}
 
 		//gameData->gameInfo.tempo.milliseconds = gameData->pipeData.x;

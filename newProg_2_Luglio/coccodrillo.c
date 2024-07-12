@@ -168,13 +168,11 @@ void *coccodrilloThread(void *param){
         coccodrillo.x += dirX;
         scriviSuBuffer(p, coccodrillo, coccodrilloTCB, false);
         
-        //scriviSuBuffer(p, coccodrillo, &(my_tcb), false);
-        //write(pipe_fd[1], &coccodrillo, sizeof(PipeData));
         usleep(200000); // Aspetta un po' prima di generare nuove coordinate
     }
     
     scriviSuBuffer(p, coccodrillo, coccodrilloTCB, true);
-    //scriviSuBuffer(p, coccodrillo, &(my_tcb), true);
+   
     pthread_exit(NULL);
 }// end coccodrilloThread
 

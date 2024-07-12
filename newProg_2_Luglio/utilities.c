@@ -73,7 +73,7 @@ void inizializzaColorazione(){
     init_pair(SFONDO_COL,COLOR_WHITE,COLOR_BLACK); // colore sfondo
     init_pair(FIUME_COL,COLOR_WHITE,COLOR_BLUE); // colore fiume 
     init_pair(TANE_COL,COLOR_WHITE,COLOR_YELLOW); // colore tane
-    init_pair(ARGINE_COL,COLOR_BLACK,COLOR_GREEN); // colore argine
+    init_pair(ARGINE_COL,COLOR_WHITE,COLOR_GREEN); // colore argine
     init_pair(MARCIAPIEDE_COL,COLOR_BLACK,COLOR_GRAY); // colore marciapiede
     init_pair(MENUBOX_COL,COLOR_GREEN,COLOR_BLACK); // colore box del menu
     init_pair(PROIETTILE_COL,COLOR_WHITE,COLOR_BLACK); // colore proiettile
@@ -223,7 +223,7 @@ void cancellaOggettoDaMatrice(GameData *gameData, PipeData *oggetto ,PipeData *o
 		datiVecchi->thread_id = 0;
 	}
 
-    refresh();
+    //refresh();
 
 	return;
 }
@@ -263,6 +263,8 @@ int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem)
     err = joinThreadMorto(tcb_thread,semaforo_tcb);
     if (!err){
         gameData->pids.pidRana = 0;
+        PipeData *rana = &(gameData->oldPos.rana);
+        cancellaOggettoDaMatrice(gameData, rana, rana, S_RANA);
         return 0;
     }
 
@@ -379,6 +381,13 @@ void terminaTuttiThread(GameData* gameData , struct Semaphore* allSem){
         impostaThreadTarget( &(tcb_thread[i]), semaforoTCB);
     }
 
+
+    /*  TEMPO    */
+    //tcb_thread = &gameData->allTCB->tcb_tempo;
+    //impostaThreadTarget(tcb_thread, semaforoTCB);
+
+
+
 }
 
 
@@ -420,29 +429,29 @@ void resetManche(Params *p)
 
    /*   PROIETTILI  */
     for(int i=0; i<MAXNPROIETTILI;i++){
-        thread_tcb = &(gameData->allTCB->tcb_proiettili);
-        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0)   // il thread è stato terminato correttamente
+        thread_tcb = gameData->allTCB->tcb_proiettili;
+        if(joinThreadMorto(&thread_tcb[i], semaforoTCB) == 0)   // il thread è stato terminato correttamente
         {  }
     }
 
     /*   PROIETTILI NEMICI  */
     for(int i=0; i<MAXNPROIETTILINEMICI;i++){
-        thread_tcb = &(gameData->allTCB->tcb_proiettili_nemici);
-        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        thread_tcb = gameData->allTCB->tcb_proiettili_nemici;
+        if(joinThreadMorto(&thread_tcb[i], semaforoTCB) == 0){  
         }
     }
 
     /*    NEMICI  */
     for(int i=0; i<MAXNNEMICI;i++){
-        thread_tcb = &(gameData->allTCB->tcb_piante);
-        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        thread_tcb = gameData->allTCB->tcb_piante;
+        if(joinThreadMorto(&thread_tcb[i], semaforoTCB) == 0){  
         }
     }
 
     /*   COCCODRILLI  */
     for(int i=0; i<MAXNCOCCODRILLI;i++){
-        thread_tcb = &(gameData->allTCB->tcb_coccodrilli);
-        if(joinThreadMorto(thread_tcb, semaforoTCB) == 0){  
+        thread_tcb = gameData->allTCB->tcb_coccodrilli;
+        if(joinThreadMorto(&thread_tcb[i], semaforoTCB) == 0){  
         }
     }
 

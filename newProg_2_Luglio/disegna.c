@@ -104,6 +104,14 @@ void *drawThread (void *param){
 
 	// loop principale di gioco
 	while (!isGameOver(gameData)) {
+		/*
+		ThreadControlBlock *tcb_tempo = &(gameData->allTCB->tcb_tempo);
+		if(leggiTid(tcb_tempo, &p->semafori->tcb_mutex) == 0){	// se ho azzerato il tempo, riavvialo
+			pthread_t tid_tempo = avviaTempoThread(p);
+			
+			//copiaTCB();
+		}
+		/**/
 
 		leggiDaBuffer( &(arg_general), &(gameData->pipeData) );
 
@@ -195,10 +203,15 @@ void *drawThread (void *param){
 		printTempo(gameData); // aggiorna hud del tempo
 		
 		int n_1 = pulisciThreadMorti(gameData, arg_general.semafori); //  in prova
+		
+		
 		if(n_1 == 0 && gameData->gameInfo.vite > 0){
+		//if(gameData->gameInfo.mancheIsChanged){	// la manche è cambiata (non funziona)
+			beep();
 			//cancellaOggettoDaMatrice(gameData,&(gameData->oldPos.rana), &gameData->oldPos.rana, S_RANA);
 			resetRanaThread(&arg_general);
 			aggiornaHud(gameData);
+			gameData->gameInfo.mancheIsChanged=false;
 		}else{
 			aggiornaHud(gameData);
 		}
@@ -310,9 +323,6 @@ void *drawThread (void *param){
 				gameData->controlloCoccodrilli[id].passi = 0;
 			}
 		}
-
-
-		// TODO - copiare codice di avvio per tutti i coccodrilli 
 		
 		if (thereIsSpaceForCoccodrilloOnFila(gameData, 3) && sec % 7 == 0 && contatore_dispari == 1)
 		{
@@ -606,7 +616,10 @@ void *drawThread (void *param){
 		mvprintw(34,106,"proiettili_Nem: %2d",gameData->contatori.contProiettiliN);
 
 		mvprintw(36,106,"                     ");
-		mvprintw(36,106,"time(sec): %2d",gameData->gameInfo.tempo.secondi);
+		mvprintw(36,106,"time(sec): %5d",gameData->gameInfo.tempo.secondi);
+		mvprintw(36,136,"time(start): %5d",(int)gameData->gameInfo.tempo.start);
+
+		mvprintw(37,106,"diffTime): %5d", (int)difftime( gameData->gameInfo.tempo.current, gameData->gameInfo.tempo.start));
 
 		
 		fflush(stdout);
