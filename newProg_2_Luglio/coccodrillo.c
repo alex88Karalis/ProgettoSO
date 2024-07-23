@@ -124,6 +124,42 @@ void *coccodrilloThread(void *param){
 
     PipeData coccodrillo_init = p_coccodrillo->coccodrillo_init; // recupero coordinate iniziali
 
+    Flusso flusso;
+    switch (coccodrillo_init.y)     // recupero il flusso di questo coccodrillo
+    {
+    case FILA_UNO:
+        flusso = p->gameData->flussi[0];
+        break;
+    case FILA_DUE:
+        flusso = p->gameData->flussi[1];
+        break;
+    case FILA_TRE:
+        flusso = p->gameData->flussi[2];
+        break;
+    case FILA_QUATTRO:
+        flusso = p->gameData->flussi[3];
+        break;
+    case FILA_CINQUE:
+        flusso = p->gameData->flussi[4];
+        break;
+    case FILA_SEI:
+        flusso = p->gameData->flussi[5];
+        break;
+    case FILA_SETTE:
+        flusso = p->gameData->flussi[6];
+        break;
+    case FILA_OTTO:
+        flusso = p->gameData->flussi[7];
+        break;
+    default:
+        break;
+    }
+
+
+
+
+   
+
     PipeData coccodrillo;
     coccodrillo.x = coccodrillo_init.x; // le coordinate iniziali del coccodrillo
     coccodrillo.y = coccodrillo_init.y;
@@ -132,13 +168,11 @@ void *coccodrilloThread(void *param){
     coccodrillo.thread_id = my_tid;
     //int dirX = 1;
 
-    int direction, vel; // direzione e velocità passati al processo dall'esterno, come fare??
-    direction = p->gameData->flussi[(p->id)-1].direction;
-    vel = p->gameData->flussi[(p->id)-1].vel;
-    
-    //direction = (coccodrillo_init.x > 0) ? -1 : 1 ; // se init.x>0 vai a sinistra, se init.x<0 vai a destra
-    //vel = rand()%3;
-    
+    int direction, vel; // direzione e velocità passati al processo dall'esterno.
+    vel = flusso.vel;
+
+    direction = (coccodrillo_init.type == 'C') ? 1 : -1 ; // se init.type==C vai da sx a dx, altrimenti vai da dx a sx
+
     int dirX = direction;
     int velocity;
 
@@ -189,14 +223,14 @@ void *coccodrilloThread(void *param){
         if(isThreadTarget(coccodrilloTCB,semaforoTCB)){
             break;
         }
-        coccodrillo.x += dirX;
+        coccodrillo.x += direction;
         scriviSuBuffer(p, coccodrillo, coccodrilloTCB, false);
         
         usleep(velocity); // Aspetta un po' prima di generare nuove coordinate
     }
     
-    scriviSuBuffer(p, coccodrillo, coccodrilloTCB, true);
-    /*  DA PROVARE
+    //scriviSuBuffer(p, coccodrillo, coccodrilloTCB, true);
+    /*  DA PROVARE/**/ 
     my_tcb.thread_id = pthread_self();
     my_tcb.is_target = true;
     my_tcb.is_terminated = true; 

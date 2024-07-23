@@ -321,7 +321,7 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
                     perror("ERRORE imposta thread Target");
                     break;
                 }else{
-                    beep();
+                    //beep();
                 }
 
                 if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
@@ -359,7 +359,7 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
                     perror("ERRORE imposta thread Target");
                     break;
                 }else{
-                    beep();
+                    //beep();
                 }
 
                 if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
@@ -367,7 +367,7 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
                     perror("ERR: Imposta Rana Target Fallito");
                     break;
                 }else{
-                    cancellaOggettoDaMatrice(gameData, &gameData->oldPos.rana , &gameData->oldPos.rana, S_RANA);
+                    cancellaOggettoDaMatrice(gameData, &gameData->oldPos.rana , &gameData->oldPos.rana, S_RANA);// cancella RANA
 
                     if(gameData->gameInfo.vite>0 ){ // decremento vite
                         gameData->gameInfo.vite--;

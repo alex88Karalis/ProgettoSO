@@ -82,7 +82,7 @@ void inizializzaColorazione(){
     init_pair(LVL_COL, COLOR_BLACK,COLOR_RED); // colore hud livello
     init_pair(TEMPO_COL, COLOR_GREEN, COLOR_GREEN); // colore hud tempo
     init_pair(PIANTA_COL,COLOR_BLACK, COLOR_GREEN); // colore nemico-pianta
-    init_pair(COCCODRILLOBUONO_COL, COLOR_GREEN, COLOR_BLACK); // colore coccodrillo
+    init_pair(COCCODRILLOBUONO_COL, COLOR_GREEN, COLOR_WHITE); // colore coccodrillo
     init_pair(COCCODRILLOCATTIVO_COL,COLOR_RED,COLOR_BLACK); // colore coccodrillo cattivo
     init_pair(LAMPEGGIA,COLOR_GREEN,COLOR_WHITE);  // colore coccodrillo che lampeggia
     
@@ -458,6 +458,25 @@ void resetManche(Params *p)
 
 }
 
+/**
+ * Imposta tutti i thread a target per farli terminare
+ * Resetta conteggio tempo e HUD del tempo
+ */
+void resetManche_2(Params *p)
+{
+    GameData *gameData = p->gameData;
+    struct Semaphore* allSem = p->semafori;
+    // conta i thread attivi al momento (eccetto Disegna,Tempo) (+1 per la Rana)
+    int thread_attivi = 1 + gameData->contatori.contCoccodrilli + gameData->contatori.contNemici + gameData->contatori.contProiettili + gameData->contatori.contProiettiliN;
+    
+    terminaTuttiThread(gameData, allSem);  
+
+    printInitTempo(p->gameData); // per le librerie?? in hud.h
+    gameData->gameInfo.tempo.start = time(NULL);	//resetta tempo
+    gameData->gameInfo.tempoIsChanged = true;
+    beep();
+
+}
 
 
 

@@ -214,11 +214,14 @@ void *drawThread (void *param){
 		
 		if(n_1 == 0 && gameData->gameInfo.vite > 0){
 		//if(gameData->gameInfo.mancheIsChanged){	// la manche è cambiata (non funziona)
-			beep();
-			//cancellaOggettoDaMatrice(gameData,&(gameData->oldPos.rana), &gameData->oldPos.rana, S_RANA);
+			
+			resetManche_2(p);
+			printInitTempo(gameData); // per le librerie??
+			//aggiornaHud(gameData);
 			resetRanaThread(&arg_general);
-			aggiornaHud(gameData);
-			gameData->gameInfo.mancheIsChanged=false;
+			
+			//gameData->gameInfo.manche--;
+			//gameData->gameInfo.mancheIsChanged=false;
 		}else{
 			aggiornaHud(gameData);
 		}
@@ -246,7 +249,7 @@ void *drawThread (void *param){
 				//gameData->contatori.contNemici++;
 				gameData->contatori.contNemici = (gameData->contatori.contNemici +1) % (MAXNNEMICI+1);
 				
-				countdown_piante = rand()%100;
+				countdown_piante = rand()%1000;
 				//power_naps_piante = rand()%1000;
 			}
 		}
@@ -631,7 +634,7 @@ void *drawThread (void *param){
 		mvprintw(36,106,"time(sec): %5d",gameData->gameInfo.tempo.secondi);
 		mvprintw(36,136,"time(start): %5d",(int)gameData->gameInfo.tempo.start);
 
-		mvprintw(37,106,"diffTime): %5d", (int)difftime( gameData->gameInfo.tempo.current, gameData->gameInfo.tempo.start));
+		mvprintw(37,106,"diffTime: %5d", (int)difftime( gameData->gameInfo.tempo.current, gameData->gameInfo.tempo.start));
 
 		
 		fflush(stdout);
