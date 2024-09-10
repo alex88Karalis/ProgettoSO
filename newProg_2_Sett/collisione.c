@@ -41,6 +41,7 @@ Collisione detectCollisione(GameData* gameData){
                 
             }
 
+            // controllo collisione sulla sprite della Rana
             for (int row = ranaPos.y; row < ranaPos.y + RANA_H; row++)
             {
                 for(int col = ranaPos.x; col < ranaPos.x + RANA_W; col++){
@@ -100,7 +101,41 @@ Collisione detectCollisione(GameData* gameData){
                             collisione.oggetto_passivo=PROIETTILE_NEMICO_OBJ;
                             collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
                             return collisione;
-                            /**/
+                            break;
+
+                        case MARCIAPIEDE_OBJ:
+                            if(gameData->ranaAbsPos.on_coccodrillo) // stai saltando da coccodrillo a marciapiede
+                            {
+                                collisione.tipoCollisione=RANA_MARCIAPIEDE;
+                                collisione.id_oggetto_attivo=gameData->pipeData.id;
+                                collisione.oggetto_attivo= RANA_OBJ;
+                                collisione.oggetto_passivo=MARCIAPIEDE_OBJ;
+                                collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                                return collisione;
+                            }
+                            return collisione;  // ritorna NO_COLLISIONE
+                            break;
+                        
+                        case ARGINE_OBJ:
+                            if(gameData->ranaAbsPos.on_coccodrillo) // stai saltando da coccodrillo a argine
+                            {
+                                collisione.tipoCollisione=RANA_ARGINE;
+                                collisione.id_oggetto_attivo=gameData->pipeData.id;
+                                collisione.oggetto_attivo= RANA_OBJ;
+                                collisione.oggetto_passivo=ARGINE_OBJ;
+                                collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                                return collisione;
+                            }
+                            return collisione;
+                            break;
+
+                        case NEMICO_OBJ:    // collisione Rana-NemicoPianta
+                            collisione.tipoCollisione=RANA_NEMICO;
+                            collisione.id_oggetto_attivo=gameData->pipeData.id;
+                            collisione.oggetto_attivo= RANA_OBJ;
+                            collisione.oggetto_passivo= NEMICO_OBJ;
+                            collisione.id_oggetto_passivo=schermo->screenMatrix[row][col].id;
+                            return collisione;
                             break;
                         default:
                             break;
@@ -322,6 +357,66 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
             
 			aggiornaOggetto(gameData, &(gameData->oldPos.rana), S_RANA);
 			break;
+        }
+
+        case RANA_TANA_APERTA:
+        {   
+            /*  Resetta la manche, 
+                - incrementa manche e punteggio 
+                - resetta pos Rana 
+                - modifica sprite della tana da aperta a chiusa
+            */
+           // stampo la rana sopra la tana aperta
+            PipeData newPosAbsRana;
+            newPosAbsRana.x = gameData->pipeData.x + gameData->ranaAbsPos.x;
+            newPosAbsRana.y = gameData->pipeData.y + gameData->ranaAbsPos.y;
+   
+            //int newPosAbsRanaX = gameData->pipeData.x + gameData->ranaAbsPos.x;
+            //int newPosAbsRanaY = gameData->pipeData.y + gameData->ranaAbsPos.y;
+            //gameData->pipeData.x = newPosAbsRanaX;
+            //gameData->pipeData.y = newPosAbsRanaY;
+            
+            // normale aggiornamento
+            aggiornaOggettoNew_2(gameData, newPosAbsRana, &(gameData->oldPos.rana), S_RANA);
+            gameData->ranaAbsPos.x = newPosAbsRana.x;
+            gameData->ranaAbsPos.y = newPosAbsRana.y;
+
+            // PERICOLO:
+            stampaMatrice(gameData->schermo.screenMatrix); // stampa a video solo celle della matrice dinamica modificate rispetto al ciclo precedente
+            refresh();                                     // Aggiorna la finestra
+            // usleep(500000);
+
+            // faccio ripartire la rana
+                //resetRana(gameData);
+            gameData->ranaAbsPos.on_coccodrillo = false;
+            gameData->ranaAbsPos.id_coccodrillo = -1;
+            
+            if(impostaThreadTarget(gameData->allTCB->tcb_rana, semaforoTCB)!=0){
+                perror("Errore set Rana Target su Tana Aperta");
+                break;
+            }
+
+            resetManche_2(thread_args);
+                //aggiornaOggetto(gameData, &(gameData->oldPos.rana), S_RANA);
+
+            //modifico dati manche e punteggio
+            if(false==gameData->gameInfo.mancheIsChanged)
+            {
+                gameData->gameInfo.manche++;
+                gameData->gameInfo.mancheIsChanged=true;
+                gameData->gameInfo.punteggio =  gameData->gameInfo.punteggio +10;
+                gameData->gameInfo.punteggioIsChanged= true;
+            }else{ break; }
+
+            // stampo tana chiusa
+            stampaTanaChiusa(gameData->tane[collisione.id_oggetto_passivo], gameData);
+
+            break;
+        }
+
+        case RANA_TANA_CHIUSA:
+        {
+            break;
         }
 
         case PROIETTILE_NEMICO_RANA: // Proiettile_Nemico ha colpito la Rana OK
@@ -742,7 +837,79 @@ void handleCollisione(Params* thread_args, GameData* gameData, Collisione collis
             break;
         }
         
+        case RANA_MARCIAPIEDE:
+        {
+            // aggiorno abs pos rana, pipeData dovrebbe essere la RANA
+            gameData->ranaAbsPos.x = gameData->ranaAbsPos.x + gameData->pipeData.x;
+            gameData->ranaAbsPos.y = gameData->ranaAbsPos.y + gameData->pipeData.y;
+            gameData->ranaAbsPos.on_coccodrillo=false;
+            gameData->ranaAbsPos.id_coccodrillo= -1;
+            // aggiorno offset rana su coccodrillo
+            gameData->ranaAbsPos.offset_on_coccodrillo = -1;
+            // stampo e aggiorno rana
+            PipeData ranaData;
+            ranaData.x= gameData->ranaAbsPos.x;
+            ranaData.y= gameData->ranaAbsPos.y;
+            ranaData.type='X';
+            ranaData.id= 0;
+            aggiornaOggettoNew_2(gameData,ranaData,&(gameData->oldPos.rana),S_RANA);
+            beep();
+            break;
+        }
 
+        case RANA_ARGINE:
+        {
+            // aggiorno abs pos rana, pipeData dovrebbe essere la RANA
+            gameData->ranaAbsPos.x = gameData->ranaAbsPos.x + gameData->pipeData.x;
+            gameData->ranaAbsPos.y = gameData->ranaAbsPos.y + gameData->pipeData.y;
+            gameData->ranaAbsPos.on_coccodrillo=false;
+            gameData->ranaAbsPos.id_coccodrillo= -1;
+            // aggiorno offset rana su coccodrillo a valore non valido
+            gameData->ranaAbsPos.offset_on_coccodrillo = -1;
+            // stampo e aggiorno rana
+            PipeData ranaData;
+            ranaData.x= gameData->ranaAbsPos.x;
+            ranaData.y= gameData->ranaAbsPos.y;
+            ranaData.type='X';
+            ranaData.id= 0;
+            aggiornaOggettoNew_2(gameData,ranaData,&(gameData->oldPos.rana),S_RANA);
+            beep();
+            break;
+        }
+        
+        case RANA_NEMICO:   // Rana collide con NemicoPianta
+        {
+            /* La Rana muore e perde la manche */
+            if (collisione.oggetto_attivo == RANA_OBJ)  // oggetto attivo = RANA
+            {
+                ThreadControlBlock *tcb_rana =  gameData->allTCB->tcb_rana;
+                pthread_t tid_rana = leggiTid(tcb_rana, semaforoTCB);
+                if(tid_rana == 0){break;}
+                if(isThreadTarget(tcb_rana, semaforoTCB)){ break;}
+                if(impostaThreadTarget(tcb_rana, &semafori->tcb_mutex)!=0) // fa terminare la RANA
+                {
+                    perror("ERR: Imposta Rana Target Fallito");
+                    break;
+                }else{
+                    if(gameData->gameInfo.vite>0 ){ // decremento vite
+                        gameData->gameInfo.vite--;
+                        gameData->gameInfo.viteIsChanged = true;
+                        gameData->gameInfo.manche--;
+                        gameData->gameInfo.mancheIsChanged = true;
+                        /*
+                        inizializzaPosRana(&(thread_args->gameData->ranaAbsPos));
+                        PipeData newPosRana = gameData->oldPos.rana;
+                        newPosRana.x = gameData->ranaAbsPos.x;
+                        newPosRana.y = gameData->ranaAbsPos.y;
+                        aggiornaOggettoNew_2(gameData,newPosRana,&(gameData->oldPos.rana) ,S_RANA);
+                        /**/
+                    }   
+                }
+
+            }
+            break;
+        }
+        
         default:
 			break;
 	}

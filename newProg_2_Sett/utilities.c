@@ -546,11 +546,11 @@ void aggiornaOldPos(PipeData *old_pos,PipeData *pipeData){
 }
 
 bool isGameOver(GameData* gameData){
-    return gameData->gameInfo.vite==0 || gameData->gameInfo.manche==3;
+    return gameData->gameInfo.vite==0 || gameData->gameInfo.manche==MAXNTANE;
 }
 
 bool isWin(GameData* gameData){
-    return gameData->gameInfo.manche==3;
+    return gameData->gameInfo.manche==MAXNTANE;
 }
 
 bool isFrogMoveLecit(int newX, int newY){

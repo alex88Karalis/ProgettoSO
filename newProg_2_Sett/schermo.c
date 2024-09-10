@@ -41,7 +41,8 @@ void aggiorna(Params *thread_arg, GameData *gameData)
 //--------------------------------------------AGGIORNAMENTO OGGETTI IN MATRICE--------------------------------
 /**
  * Se l'oggetto si è mosso rispetto alla lettura precedente,
- * 	aggiorna la posizione della sprite sulla matrice e salva la nuova posizione
+ * 	aggiorna la posizione della sprite sulla matrice e salva la nuova posizione.
+ * 	Non usa funzioni ncurses.
  * @param gameData riferimento alla struttura con i dati del gioco
  * @param old_pos E' il vettore con le vecchie posizioni per quella classe di oggetti
  * @param tipoSprite il tipo della sprite dell'oggetto
@@ -58,8 +59,7 @@ void aggiornaOggetto(GameData *gameData, PipeData *old_pos, TipoSprite tipoSprit
 		pulisciSpriteInMatrice(datiVecchi, &(gameData->sprites[tipoSprite]), gameData);
 
 		stampaSpriteInMatrice(datiNuovi, &(gameData->sprites[tipoSprite]), gameData);
-		// ?? stampaMatrice(gameData->schermo.screenMatrix);
-
+		
 		aggiornaOldPos(datiVecchi, datiNuovi);
 	}
 }
@@ -939,7 +939,9 @@ void stampaCoccodrilloInMatrice(PipeData *datiNuovi, Sprite *sprite, GameData *g
 
 
 
-/**	Aggiorna in matrice un oggetto specifico passato come new_pos
+/**	Prende coordinate di un oggetto new_pos e aggiorna le vecchie coordinate sul vettore old_pos, usa come indice pipedata.id, 
+ *  e aggiorna coordinate sulla matrice.
+ * 	Non usa funzioni di ncurses. 
  * @param gameData
  * @param new_pos l'oggetto da aggiornare sulla matrice e in old_pos
  * @param old_pos vettore con le vecchie posizioni dell'oggetto
@@ -956,15 +958,17 @@ void aggiornaOggettoNew(GameData *gameData, PipeData new_pos, PipeData *old_pos,
 	{
 
 		pulisciSpriteInMatrice(datiVecchi, &(gameData->sprites[tipoSprite]), gameData);
-		stampaMatrice(gameData->schermo.screenMatrix);
+		//stampaMatrice(gameData->schermo.screenMatrix);
 		stampaSpriteInMatrice(datiNuovi, &(gameData->sprites[tipoSprite]), gameData);
-		stampaMatrice(gameData->schermo.screenMatrix);
+		//stampaMatrice(gameData->schermo.screenMatrix);
 		aggiornaOldPos(datiVecchi, datiNuovi);
 	}
 }
 
 
-/**	Aggiorna in matrice un oggetto specifico passato come new_pos
+/**	Prende coordinate di un oggetto new_pos e aggiorna le vecchie coordinate in old_pos(non è un vettore) 
+ *  e aggiorna coordinate sulla matrice. Usato sopratutto per la Rana.
+ * Non usa funzioni di ncurses.
  * @param gameData
  * @param new_pos l'oggetto da aggiornare sulla matrice e in old_pos
  * @param old_pos esatta posizione sul vettore con le vecchie posizioni dell'oggetto. NON è un vettore.
@@ -983,9 +987,7 @@ void aggiornaOggettoNew_2(GameData *gameData, PipeData new_pos, PipeData *old_po
 	{
 
 		pulisciSpriteInMatrice(datiVecchi, &(gameData->sprites[tipoSprite]), gameData);
-		//stampaMatrice(gameData->schermo.screenMatrix);
 		stampaSpriteInMatrice(datiNuovi, &(gameData->sprites[tipoSprite]), gameData);
-		//stampaMatrice(gameData->schermo.screenMatrix);
 		aggiornaOldPos(datiVecchi, datiNuovi);
 	}
 }
