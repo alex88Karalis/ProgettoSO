@@ -215,13 +215,12 @@ void *drawThread (void *param){
 		if(n_1 == 0 && gameData->gameInfo.vite > 0){
 		//if(gameData->gameInfo.mancheIsChanged){	// la manche è cambiata (non funziona)
 			
+			pulisciSpriteInMatrice(&(gameData->oldPos.rana),&(gameData->sprites[S_RANA]),gameData);	// pulisce sprite Rana
 			resetManche_2(p);
 			printInitTempo(gameData); // per le librerie??
-			//aggiornaHud(gameData);
+			
 			resetRanaThread(&arg_general);
 			
-			//gameData->gameInfo.manche--;
-			//gameData->gameInfo.mancheIsChanged=false;
 		}else{
 			aggiornaHud(gameData);
 		}

@@ -175,7 +175,7 @@ void inizializzaGameInfo(GameData* gamedata){
 	gameInfo->vite=3;
 	gameInfo->punteggio=0;
 	gameInfo->livello= 1;
-	gameInfo->manche=1;
+	gameInfo->manche=0;
 }
 
 void inizializzaHUD(GameData* gameData){
@@ -264,7 +264,8 @@ void inizializzaTane(GameData* gameData){
 			for(int j=start_col;j<end_col;j++){
 				//disegno solo se non sforo la larghezza dello schermo
 				if(j <= LASTGAMECOL){
-					gameData->schermo.screenMatrix[i][j].ch = ' ';
+					int r=rand()%1000;
+					gameData->schermo.screenMatrix[i][j].ch = (r%5==0) ? '~' : ' ';
 					gameData->schermo.screenMatrix[i][j].color = LAVA_COL;
 					gameData->schermo.screenMatrix[i][j].tipo = LAVA_OBJ;
 					gameData->schermo.screenMatrix[i][j].id=0;

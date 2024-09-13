@@ -339,7 +339,7 @@ int pulisciThreadMorti( GameData* gameData , struct Semaphore* allSem)
         
         //avviaTempoThread();   come resettare la manche ??
 
-        beep();
+        //beep();
     }
 
 
@@ -475,8 +475,7 @@ void resetManche_2(Params *p)
     printInitTempo(p->gameData); // per le librerie?? in hud.h
     gameData->gameInfo.tempo.start = time(NULL);	//resetta tempo
     gameData->gameInfo.tempoIsChanged = true;
-    beep();
-
+   
 }
 
 
