@@ -30,6 +30,7 @@ void *moveRanaThread(void *param);
 */
 int resetRanaThread(Params* thread_args);
 
+void uccidiRana(Params* thread_args);
 
 #endif
 

@@ -209,12 +209,12 @@ void *drawThread (void *param){
 		aggiorna(&(arg_general), gameData); // aggiorna stato del gioco e gestisce collisioni
 		printTempo(gameData); // aggiorna hud del tempo
 		
+		//if(gameData->gameInfo.ranaIsDead){ }
 		int n_1 = pulisciThreadMorti(gameData, arg_general.semafori); //  in prova
 		
 		
 		if(n_1 == 0 && gameData->gameInfo.vite > 0){
-		//if(gameData->gameInfo.mancheIsChanged){	// la manche è cambiata (non funziona)
-			
+		
 			pulisciSpriteInMatrice(&(gameData->oldPos.rana),&(gameData->sprites[S_RANA]),gameData);	// pulisce sprite Rana
 			resetManche_2(p);
 			printInitTempo(gameData); // per le librerie??
@@ -229,9 +229,6 @@ void *drawThread (void *param){
 		/**/
 
 		//--------------AVVIO NEMICI / PIANTE ------------------
-		// TODO - aggiustare cancellazione piante 
-		
-		//avviaNemiciThread(p, countdown_piante);
 
 		/*
 		/** */
@@ -712,13 +709,40 @@ void avviaNemiciThread(Params* thread_param, int* countdown)
 	/**/
 }// end avviaNemiciThread
 
+void spawnCoccodrilli(GameData *gameData, int sec, int contatore_dispari)
+{
+	for (int fila = 1; fila <= 8; fila++)
+	{
+		if (thereIsSpaceForCoccodrilloOnFila(gameData, fila) && sec % TEMPO_SPAWN_COCCODRILLI == 0 && contatore_dispari == 1)
+		{
+			int id = id_disponibile(gameData->pids.pidCoccodrilli, MAXNCOCCODRILLI);
+			if (id != NOID)
+			{
+				PipeData coccodrillo_init;
+				inizializzaCoccodrillo(&(coccodrillo_init), gameData, fila, id);
+				
+				int pid_coccodrillo = avviaCoccodrillo(gameData->pipe, &(coccodrillo_init), gameData->flussi[fila - 1].direction, gameData->flussi[fila - 1].vel);
+				//pthread_t tid_coccodrillo =  avviaCoccodrilloThread(Params_coccodrilli *thread_args, int id);
+				
+				gameData->pids.pidCoccodrilli[id] = pid_coccodrillo;
+				gameData->flussi[fila - 1].n_coccodrilli_attivi++;
+				gameData->contatori.contCoccodrilli++;
+				gameData->oldPos.coccodrilli[id].id = id;
+			}
+		}
+	}
+}
+
+
+
+
 void stampaWin(){
 	clear();
 	stampaBox();
 	stampaLogoMenu(STARTROWLOGOMENU,STARTCOLLOGOMENU);
 	mvprintw(15,80,"you win!!!!!!!!!!!!!");
 	refresh();
-	usleep(30000000);
+	usleep(3000000);
 	return;
 }
 

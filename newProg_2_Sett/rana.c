@@ -88,6 +88,14 @@ void moveProcess(int* pipe_fd) {
     return;
 }
 
+// per riavviare il processo rana
+void resetRana(GameData* gameData){
+	kill(gameData->pids.pidRana, SIGKILL);
+	waitpid(gameData->pids.pidRana, NULL,0);
+	gameData->pids.pidRana = avviaRana(gameData->pipe);
+	inizializzaPosRana(&(gameData->ranaAbsPos));
+	return;
+}
 
 //-------	VERSIONE THREADS ----------------
 
@@ -142,6 +150,8 @@ void *moveRanaThread(void *param){
         // Muovi il personaggio in base all'input dell'utente
         switch (ch) {
         	case KEY_UP:
+			case 'w':
+			case 'W':
 				new_pos.y=-2;
             	change=true;
             break;
@@ -190,7 +200,6 @@ void *moveRanaThread(void *param){
 
 }// fine moveRanaThread
 
-
 int resetRanaThread(Params* thread_args){
 	pthread_t newRana = 0;
 	inizializzaPosRana(&(thread_args->gameData->ranaAbsPos));
@@ -202,13 +211,24 @@ int resetRanaThread(Params* thread_args){
 	return -1;
 }
 
+/* Imposta il thread Rana a target
+	decrementa vite e manche
+	imposta ranaIsDead a TRUE 
+*/
+void uccidiRana(Params* thread_args){
+	GameData* gameData = thread_args->gameData;
+	sem_t* semaforoTCB = &(thread_args->semafori->tcb_mutex);
+	ThreadControlBlock* tcb_rana = gameData->allTCB->tcb_rana;
 
-
-// per riavviare il processo rana
-void resetRana(GameData* gameData){
-	kill(gameData->pids.pidRana, SIGKILL);
-	waitpid(gameData->pids.pidRana, NULL,0);
-	gameData->pids.pidRana = avviaRana(gameData->pipe);
-	inizializzaPosRana(&(gameData->ranaAbsPos));
-	return;
+	if(isThreadTarget(tcb_rana, semaforoTCB)){ return;}
+	impostaThreadTarget(tcb_rana, semaforoTCB);
+	gameData->gameInfo.vite--;
+	gameData->gameInfo.manche--;
+	gameData->gameInfo.viteIsChanged = true;
+	gameData->gameInfo.mancheIsChanged = true;
+	gameData->gameInfo.ranaIsDead=true;
 }
+
+
+
+

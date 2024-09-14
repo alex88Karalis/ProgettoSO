@@ -156,10 +156,6 @@ void *coccodrilloThread(void *param){
     }
 
 
-
-
-   
-
     PipeData coccodrillo;
     coccodrillo.x = coccodrillo_init.x; // le coordinate iniziali del coccodrillo
     coccodrillo.y = coccodrillo_init.y;

@@ -97,8 +97,8 @@ void inizializzaContatori(GameData* gameData){
 // Imposta la posizione iniziale della Rana nella matrice Schermo
 void inizializzaPosRana(RanaAbsPos* ranaPos){
 	ranaPos->x=WIDTH/2;
-	//ranaPos->y=MARCIAPIEDEROWSTART;
-	ranaPos->y=ARGINEROWSTART;
+	ranaPos->y=MARCIAPIEDEROWSTART;
+	//ranaPos->y=ARGINEROWSTART;
 	
 	ranaPos->on_coccodrillo = false;
 	ranaPos->id_coccodrillo = -1;		// inizializzo a valore non valido

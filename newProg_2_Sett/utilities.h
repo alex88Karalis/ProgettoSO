@@ -18,6 +18,11 @@
 //#include "tempo.h"
 //#include "schermo.h"
 
+// macro aggiuntive
+#define NOPID 0 // indica che non esiste un pid associato
+#define NOID -1 // indica che non esiste un id associato
+#define NOPOS -1 // indica che non esiste una posizione assegnata
+#define NO_OBJ -1 // indica che non esiste un oggetto associato
 
 // colori aggiuntivi
 #define COLOR_GRAY 8
@@ -146,7 +151,7 @@
 #define LAMPEGGIA 16 // colore coccodrillo quando lampeggia
 
 // massimo numero di oggetti per tipo
-#define MAXNCOCCODRILLI 8
+#define MAXNCOCCODRILLI 18
 #define MAXNPROIETTILI 3
 #define MAXNNEMICI 4
 #define MAXNPROIETTILINEMICI 4
@@ -393,6 +398,7 @@ typedef struct {
 	bool livelloIsChanged;
 	int manche;
 	bool mancheIsChanged;
+	bool ranaIsDead;
 } GameInfo;		
 
 // struttura che contiene tutti i pid dei processi usati
@@ -469,6 +475,7 @@ typedef struct{
 typedef struct{
 	int direction;
 	int vel;
+	int n_coccodrilli_attivi;
 }Flusso;
 
 // struttura dati generale del gioco, contiene tutti i dati significativi per la gestione

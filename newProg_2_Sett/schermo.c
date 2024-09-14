@@ -588,6 +588,7 @@ void handleCoccodrilloMovement(Params* thread_arg, GameData *gameData)
 				// cancellare lo posso lasciare come prima
 				// invece disegnare lo devo modificare
 				aggiornaOggettoCoccodrillo(gameData, gameData->oldPos.coccodrilli, S_COCCODRILLO_DX_C, controlloCoccodrillo);
+				
 			}
 			else
 			{
@@ -821,6 +822,7 @@ void handleCoccodrilloMovement(Params* thread_arg, GameData *gameData)
 
 		/* Rana su coccodrillo */
 		// se la rana è su quel coccodrillo
+		/*
 		if (gameData->ranaAbsPos.id_coccodrillo == gameData->pipeData.id)
 		{
 			// ci stampo sopra la rana
@@ -857,7 +859,87 @@ void handleCoccodrilloMovement(Params* thread_arg, GameData *gameData)
 				//aggiornaOggetto(gameData, &(gameData->oldPos.rana), S_RANA); // possibili bug, usa pipeData.id su oldPos[] 
 			}
 		}
+		/**/
 
+	}
+
+	/* Rana su coccodrillo */
+	if (gameData->ranaAbsPos.id_coccodrillo == gameData->pipeData.id)
+	{
+		// ci stampo sopra la rana
+		PipeData rana;
+		rana.x = gameData->oldPos.coccodrilli[gameData->pipeData.id].x + gameData->ranaAbsPos.offset_on_coccodrillo + gameData->controlloCoccodrilli[gameData->pipeData.id].direction;
+		
+		//rana.x = gameData->oldPos.coccodrilli[gameData->pipeData.id].x + gameData->ranaAbsPos.offset_on_coccodrillo;
+		rana.y = gameData->oldPos.coccodrilli[gameData->pipeData.id].y;
+		rana.type = 'X';
+		rana.id = 0;
+		// aggiorno rana abs pos
+		gameData->ranaAbsPos.x = rana.x;
+		gameData->ranaAbsPos.y = rana.y;
+		// aggiornare anche oldPos.rana ?
+		gameData->oldPos.rana = rana;
+
+		stampaSpriteInMatrice(&(rana), &(gameData->sprites[S_RANA]), gameData);
+
+		if(controlloCoccodrillo->direction == 1)// coccodrillo da sx a dx
+		{
+			// la Rana si immerge 
+			// se la Rana cade in acqua
+			if (gameData->ranaAbsPos.offset_on_coccodrillo + gameData->controlloCoccodrilli[gameData->ranaAbsPos.id_coccodrillo].offset_deep >= 7)
+			{
+				/* Uccidi Rana */
+				/*
+				sem_t* semaforoTCB = &(thread_arg->semafori->tcb_mutex);
+				ThreadControlBlock *tcb_rana = (gameData->allTCB->tcb_rana);
+				if(isThreadTarget(tcb_rana, semaforoTCB)){ return; }
+				impostaThreadTarget(tcb_rana, semaforoTCB);
+				gameData->gameInfo.vite--;
+				gameData->gameInfo.manche--;
+				gameData->gameInfo.mancheIsChanged = true;
+				gameData->gameInfo.viteIsChanged = true;
+				/**/
+				uccidiRana(thread_arg);
+			}
+		}else	// coccodrillo da dx a sx
+		{
+			if (gameData->controlloCoccodrilli[gameData->pipeData.id].offset_deep - gameData->ranaAbsPos.offset_on_coccodrillo >= 1)
+			{
+				/* Uccidi Rana */
+				/*
+				sem_t* semaforoTCB = &(thread_arg->semafori->tcb_mutex);
+				ThreadControlBlock *tcb_rana = (gameData->allTCB->tcb_rana);
+				if(isThreadTarget(tcb_rana, semaforoTCB)){ return; }
+				impostaThreadTarget(tcb_rana, semaforoTCB);
+				gameData->gameInfo.vite--;
+				gameData->gameInfo.manche--;
+				gameData->gameInfo.mancheIsChanged = true;
+				gameData->gameInfo.viteIsChanged = true;
+				/**/
+				uccidiRana(thread_arg);
+			}
+
+		}
+
+
+
+		// se la rana esce fuori dallo schermo allora muore
+		if (gameData->ranaAbsPos.x >= LASTGAMECOL - 1 || gameData->ranaAbsPos.x < FIRSTGAMECOL)
+		{
+			// uccido la rana
+			// tolgo una vita alla rana
+			gameData->gameInfo.vite--;
+			gameData->gameInfo.viteIsChanged = true;
+
+			// faccio ripartire la rana
+			//resetRana(gameData);
+			gameData->ranaAbsPos.on_coccodrillo = false;
+			gameData->ranaAbsPos.id_coccodrillo = -1;
+
+			resetManche_2(thread_arg);
+			aggiornaOggettoNew_2(gameData, rana, &(gameData->oldPos.rana), S_RANA);
+			//aggiornaOggetto(gameData, &(gameData->oldPos.rana), S_RANA); // possibili bug, usa pipeData.id su oldPos[] 
+		}
 	}
 
 	return;
