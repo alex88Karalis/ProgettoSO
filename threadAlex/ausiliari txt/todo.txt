@@ -1,0 +1,37 @@
+fare appunti sul progetto:
+	struttura generale
+estromettere auto tronchi
+cambiare make file
+ridisegnare schermo
+creare coccodrilli
+creare piante
+sprite coccodrillo
+sprite piante
+implementare meccanica mov relativo rana lato processo disegna, implementare i vincoli
+
+
+appunti:
+	processo rana:
+		il processo rana può inviare 
+		tasti freccia, 
+		p/P per pausa (invia in pipe il carattere Z),
+		con barra spazziatrice invia il carattere S per sparare
+	sfondo:
+		marciapiede (alto 2) righe 33 e 32
+		fiume (alto 16, 8 coccodrilli) righe 31-16
+		argine (alto 6) righe 15-10
+		tane (alto 4) righe 9-6, la riga 6 è piena le altre sono tana/no tana
+
+file completamente modificati:
+	rana.c e rana.h (implementato movimento relativo)
+
+divide et impera:
+	1. commentare tutto tranne rana, schermo e collisioni con
+	   fiume, tane aperte, tane chiuse ed in genarale elementi schermo statici
+	2. ridisegnare schermo
+	3. togliere elementi di debug
+	4. revisione codice
+	5. primo test e prima consega su github
+
+aggiustare tane dimensione, togliere debug(probabilmente sta in aggiorna)
+implementare mov relativo della rana su disegna e aggiorna
